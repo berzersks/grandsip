@@ -49,7 +49,6 @@ $server->on('Start', '\plugins\Start\server::start');
 $server->on('Request', '\plugins\Request\server::request');
 $server->on('close', function ($server, $fd) {
     cache::searchAndRemove('allowedFds', $fd);
-
 });
 
 $server->start();
