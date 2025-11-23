@@ -364,9 +364,15 @@ window.addEventListener('resize', () => {
             tags.forEach(t => {
                 const chip = document.createElement('span');
                 chip.className = 'tag-chip';
-                chip.innerHTML = `<span>${t}</span><span class="x">
-       <i class="fa-sharp fa-regular fa-circle-xmark x"></i>
-        </span>`;
+                // Securely render user-supplied tag value
+                const tagText = document.createElement('span');
+                tagText.textContent = t;
+                const xSpan = document.createElement('span');
+                xSpan.className = 'x';
+                const xIcon = document.createElement('i');
+                xIcon.className = 'fa-sharp fa-regular fa-circle-xmark x';
+                xSpan.appendChild(xIcon);
+                chip.append(tagText, xSpan);
                 box.insertBefore(chip, inner);
             });
 
