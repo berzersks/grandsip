@@ -1,0 +1,745 @@
+<style>
+
+
+    /* Alinhar texto ao centro do toggle */
+    /* Tornar o toggle mais fino */
+    .form-check-toggle input + span {
+        cursor: pointer;
+        display: inline-block;
+        width: 42px; /* Largura reduzida */
+        height: 18px; /* Altura reduzida */
+        background: #41445a; /* Fundo do toggle */
+        border-radius: 12px; /* Arredondamento proporcional à nova altura */
+        position: relative;
+        transition: background 0.3s ease-in-out;
+    }
+
+    .form-check-toggle input + span:before {
+        content: "";
+        display: inline-block;
+        width: 14px; /* Botão circular menor */
+        height: 14px;
+        background: #ffffff; /* Botão circular */
+        border-radius: 50%;
+        position: absolute;
+        top: 2px; /* Ajuste para centralizar no fundo */
+        left: 2px;
+        transition: transform 0.3s ease-in-out;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .form-check-toggle input:checked + span {
+        background: #7463ee; /* Fundo ativo */
+    }
+
+    .form-check-toggle input:checked + span:before {
+        transform: translateX(24px); /* Move o botão para o estado ativo */
+    }
+
+    /* Ajustar alinhamento do texto ao toggle */
+    .d-flex .form-label {
+        line-height: 18px; /* Igual à altura do toggle */
+        margin-bottom: 0;
+        margin-right: 10px; /* Espaço entre o texto e o toggle */
+    }
+
+    /* Esconde o input padrão */
+    .form-check-toggle input {
+        display: none;
+    }
+
+
+    /* Ajustar espaçamento entre linhas */
+    .table tbody tr {
+        height: 40px;
+    }
+
+    .dropdown-menu {
+        background-color: #131633 !important;
+        color: #fff;
+    }
+
+    .dropdown-item {
+        color: #fff;
+    }
+
+    .dropdown-item:hover {
+        background-color: #131633 !important;
+    }
+
+    .dropdown-item.text-danger:hover {
+        background-color: #dc3545;
+        color: #fff;
+    }
+
+    /* Estilo dos ícones de status */
+    .text-success {
+        color: #28a745 !important;
+    }
+
+    .text-danger {
+        color: #dc3545 !important;
+    }
+
+    .text-warning {
+        color: #ffc107 !important;
+    }
+
+    .tdr {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+</style>
+<!-- Página de Troncos/Servidores -->
+<div class="p-2 rounded bg-dark shadow text-light">
+
+
+    <button class="btn btn-light-green text-light bold mb-2" data-bs-target="#addServerModal" data-bs-toggle="modal">
+        <b><i class="fas fa-plus"></i> Registrar novo tronco</b>
+    </button>
+
+    <div class="table-responsive mt-2">
+        <table class="table table-dark table-hover" id="serversTable">
+            <thead>
+            <tr>
+                <th class="text-center">Status</th>
+                <th>Nome</th>
+                <th>Saldo</th>
+                <th>Custo</th>
+                <th>Tarifa</th>
+                <th>IP</th>
+                <th class="text-center">Ação</th>
+            </tr>
+            </thead>
+            <tbody id="serversTableBody" style="display: none">
+            <!-- Linhas geradas dinamicamente -->
+            </tbody>
+        </table>
+        <div class="d-flex flex-column mt-2 flex-md-row align-items-center">
+            <!-- Botões de paginação -->
+            <div class="d-flex justify-content-center justify-content-md-start mb-2 mb-md-0">
+                <button class="btn btn-primary me-2" disabled id="prevPage">Anterior</button>
+                <div class="btn-group me-2" id="paginationButtons" role="group">
+                    <!-- Botões de páginas serão adicionados dinamicamente -->
+                </div>
+                <button class="btn btn-primary ms-2" disabled id="nextPage">Próxima</button>
+            </div>
+
+            <!-- Informações de paginação -->
+            <div class="ms-auto text-center text-md-end">
+                <small>Mostrando <span id="currentPageStart">1</span> a <span id="currentPageEnd">10</span> de <span
+                        id="totalRecordsCallPage">0</span> registros</small>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal de adição de servidor -->
+<div aria-hidden="true" aria-labelledby="addServerModalLabel" class="modal fade" id="addServerModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header">
+
+
+                <ul class="nav nav-underline">
+                    <li class="nav-item" onclick="setTab('authTabs')">
+                        <a aria-current="page" class="nav-link active text-light" href="#" id="linkaut">Autenticação</a>
+                    </li>
+                    <li class="nav-item" onclick="setTab('dialTabs')">
+                        <a class="nav-link" href="#" id="linkdial">Discagem</a>
+                    </li>
+                </ul>
+                <button aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"></button>
+            </div>
+            <div class="modal-body">
+                <div id="authTabs" style="display: block">
+                    <!-- Formulário de adição de servidor -->
+                    <div class="mb-3">
+                        <label class="form-label" for="serverName">Nome do Servidor</label>
+                        <input class="form-control" id="serverName" placeholder="Digite o nome do servidor" required
+                               type="text">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="price">Cobrar por minuto</label>
+                        <input autocomplete="off" class="form-control" id="price" type="number" value="0.15">
+                    </div>
+
+                    <div class="mb-3 position-relative">
+                        <label class="form-label" for="serverIp">IP do Servidor</label>
+
+                        <!-- Campo de entrada com ícone embutido -->
+                        <div class="input-group shadow-sm">
+
+                            <!-- desligar sugestões do navegador -->
+                            <input
+                                    autocapitalize="none"
+                                    autocomplete="off"
+                                    class="form-control"
+                                    id="serverIp"
+                                    placeholder="Digite o IP ou selecione..."
+                                    style="border-right-color: transparent !important;"
+                                    type="text"
+                            />
+                            <div class="input-group-text bg-white  rounded-end"
+
+                            >
+                                <i class="fas fa-search text-muted text-white"></i>
+                            </div>
+                        </div>
+
+                        <!-- Sugestões estilizadas -->
+                        <ul
+                                class="list-group position-absolute w-100 d-none shadow-sm"
+                                id="suggestionList"
+                                style="z-index: 1000; top: 100%; max-height: 200px; overflow-y: auto;"
+                        >
+                            <!-- Sugestões geradas dinamicamente -->
+                        </ul>
+                    </div>
+                    <div class="mb-3">
+                    <label class="form-label" for="codecs">Codecs de envio (8,0,18)</label>
+                    <input class="form-control tagify" id="codecs" name="codecs" value="" separators="enter,comma"
+                           allow-duplicates="false" max="20" storage-key="tags-codecs" value="8,0">
+                </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="noForce">Registrar Conta apenas se obrigatório</label>
+                        <div class="form-group">
+                            <select class="form-control" id="noForce">
+                                <option value="true">Sim</option>
+                                <option value="false">Não</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- máximo de rediscagem -->
+                    <div class="mb-3">
+                        <label class="form-label" for="maxRedial">Máximo de rediscagem</label>
+                        <input autocomplete="off" class="form-control" id="maxRedial" type="number" value="3">
+                    </div>
+
+
+                    <div class="mb-3">
+                        <label class="form-label" for="serverUser">Usuário</label>
+                        <input autocomplete="off" class="form-control" id="serverUser"
+                               placeholder="Deixe em branco para servidores sem autenticação" type="text"
+                               value="">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="serverPass">Senha</label>
+                        <input autocomplete="off" class="form-control" id="serverPass"
+                               placeholder="Deixe em branco para servidores sem autenticação"
+                               type="text">
+                    </div>
+
+
+                </div>
+                <div id="dialTabs" style="display: none">
+                    <div class="mb-3">
+                        <label class="form-label" for="portServer">Porta do servidor</label>
+                        <input autocomplete="off" class="form-control" id="portServer" type="text" value="5060">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="maxTime">Desligar chamadas após</label>
+                        <input autocomplete="off" class="form-control" id="maxTime" type="text" value="60">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="removePrefix">Remover Prefixo</label>
+                        <input autocomplete="off" class="form-control" id="removePrefix" type="text" value="">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="addPrefix">Adicionar Prefixo</label>
+                        <input autocomplete="off" class="form-control" id="addPrefix" type="text" value="">
+                    </div>
+                    <!-- toggle para habilitar autenticação -->
+
+
+                    <div class="text-end">
+                        <label class="" style="margin-right: -2px; font-size: inherit;">
+                            <label> Manter tecnologia antiga?</label>
+                        </label>
+                        <div class="form-check">
+                            <label class="form-check-label form-check-toggle">
+                                <input class="form-check-input" type="checkbox"/><span></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-light-green text-light" onclick="registerTrunk()" type="submit">Adicionar
+                    </button>
+
+
+                </div>
+            </div>
+
+
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal de visualização de tronco apenas informações não relacionadas a autenticação -->
+<div aria-hidden="true" aria-labelledby="modalTrunkLabel" class="modal fade" id="modalTrunk" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTrunkLabel">Tronco</h5>
+                <button aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label" for="codecsEdit">Codecs (8,0,18)</label>
+                    <input class="form-control tagify" id="codecsEdit" name="codecsEdit" value="" separators="enter,comma"
+                           allow-duplicates="false" max="20" storage-key="tags-codecsEdit">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="priceEdit">Cobrar por minuto</label>
+                    <input autocomplete="off" class="form-control" id="priceEdit" type="number" value="0.15">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="priceEditTrunk">Preço do minuto no tronco</label>
+                    <input autocomplete="off" class="form-control" id="priceEditTrunk" type="number" value="0.15">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="portServerEdit">Porta do servidor</label>
+                    <input autocomplete="off" class="form-control" id="portServerEdit" type="text" value="5060">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="balance">Saldo do tronco</label>
+                    <input autocomplete="off" class="form-control" id="balance" type="number" value="0">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="maxTimeEdit">Desligar chamadas após</label>
+                    <input autocomplete="off" class="form-control" id="maxTimeEdit" type="text" value="60">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="maxRedialEdit">Máximo de rediscagem</label>
+                    <input autocomplete="off" class="form-control" id="maxRedialEdit" type="number" value="3">
+                </div>
+                <input id="idTrunk" type="hidden">
+
+
+                <!-- tech prefix -->
+                <div class="mb-3">
+                    <label class="form-label" for="removePrefixEdit">Remover Prefixo</label>
+                    <input autocomplete="off" class="form-control" id="removePrefixEdit" type="text" value="">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="addPrefixEdit">Adicionar Prefixo</label>
+                    <input autocomplete="off" class="form-control" id="addPrefixEdit" type="text" value="">
+                </div>
+
+                <!-- toggle para habilitar autenticação -->
+                <div class="text-end">
+                    <label class="" style="margin-right: -2px; font-size: inherit;">
+                        <label> Manter tecnologia antiga?</label>
+                    </label>
+                    <div class="form-check">
+                        <label class="form-check-label form-check-toggle">
+                            <input class="form-check-input" id="oldTech" type="checkbox"/><span></span>
+                        </label>
+                    </div>
+                </div>
+                <br>
+
+
+                <!-- botao na direita -->
+                <div class="text-end">
+                    <button class="btn btn-light-green text-light" onclick="refreshTrunk()" type="submit">Salvar
+                    </button>
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    let selectedCallId = null;
+    const CALLS_URL = 'listCalls';
+    const CONTENT_TYPE_JSON = {'Content-Type': 'application/json'};
+    let currentPage = 1;
+    const recordsPerPage = 8;
+    const maxVisiblePages = 5;
+    let totalRecordsCallPage = 1;
+
+
+    window.refreshTrunk = () => {
+        const maxTime = document.getElementById("maxTimeEdit").value;
+        const maxRedials = document.getElementById("maxRedialEdit").value;
+        const removePrefix = document.getElementById("removePrefixEdit").value;
+        const addPrefix = document.getElementById("addPrefixEdit").value;
+        const authToken = (new UserManager).getValue('token');
+        const idTrunk = document.getElementById("idTrunk").value;
+        const registerAccount = document.getElementById("oldTech").checked;
+        const price = document.getElementById("priceEdit").value;
+
+        fetch('/updateTrunk', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                authToken: authToken,
+                maxTime: maxTime,
+                maxRedials: maxRedials,
+                removePrefix: removePrefix,
+                addPrefix: addPrefix,
+                id: idTrunk,
+                registerAccount: registerAccount,
+                price: price,
+                codecs: document.getElementById("codecsEdit").value,
+                port: document.getElementById("portServerEdit").value,
+                priceTrunk: document.getElementById("priceEditTrunk").value,
+                balance: document.getElementById("balance").value,
+            })
+        }).then(response => response.json()).then(result => {
+            if (result.success) {
+                toast("Tronco atualizado com sucesso", "Sucesso", 3000, "success");
+                $('#modalTrunk').modal('hide');
+                getTrunks();
+            } else {
+                toast("Erro ao atualizar tronco: " + result.message, "Erro", 3000, "error");
+            }
+        });
+    }
+
+
+    window.fetchTrunkData = async (idTrunk) => {
+        let response = await fetch('/getTrunkData', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({authToken: (new UserManager).getValue('token'), id: idTrunk})
+        });
+        let trunkData = await response.json();
+        //  'name' => $trunk['n'],
+        //   'maxTime' => $trunk['mt'],
+        //  'maxRedials' => $trunk['mr'] ?? 0,
+        //  'removePrefix' => $trunk['rp'] ?? '',
+        //  'addPrefix' => $trunk['ap'] ?? '',
+        //  'price' => $trunk['d'],
+        //  'registerAccount' => $trunk['r'],
+        $('#modalTrunkLabel').text(trunkData.name);
+        $('#maxTimeEdit').val(trunkData.maxTime);
+        $('#balance').val(trunkData.balance);
+
+        $('#maxRedialEdit').val(trunkData.maxRedials);
+        $('#removePrefixEdit').val(trunkData.removePrefix);
+        $('#addPrefixEdit').val(trunkData.addPrefix);
+        $('#idTrunk').val(idTrunk);
+        $('#portServerEdit').val(trunkData.port);
+        $('#priceEdit').val(trunkData.price);
+        $('#priceEditTrunk').val(trunkData.priceTrunk);
+        $('#oldTech').prop('checked', trunkData.registerAccount);
+        $('#codecsEdit').val(trunkData.codecs);
+
+
+    }
+
+    window.delimiterString = (string, length) => {
+        if (string.length > length) {
+            return string.substring(0, length) + '...';
+        }
+        return string;
+    }
+
+
+    window.setTab = (tab) => {
+        if (tab === 'authTabs') {
+            $('#authTabs').css('display', 'block');
+            $('#dialTabs').css('display', 'none');
+
+            $('#dialTabs').removeClass('text-light');
+            $('#linkaut').addClass('active');
+            $('#linkaut').addClass('text-light');
+            $('#linkdial').removeClass('text-light');
+            $('#linkdial').removeClass('active');
+        } else {
+            $('#linkaut').removeClass('text-light');
+            $('#linkdial').addClass('text-light');
+
+
+            $('#linkaut').removeClass('active');
+            $('#linkdial').addClass('active');
+            $('#authTabs').css('display', 'none');
+            $('#dialTabs').css('display', 'block');
+        }
+    }
+
+
+    // pegar sugestões no localstorage
+    let suggestions = localStorage.getItem('suggestions');
+    // se tiver vazio, adiciona esses
+    if (!suggestions) {
+        localStorage.setItem('suggestions', JSON.stringify([
+            'spechshop.com',
+            "sipti.com.br",
+            "0.0.0.0",
+            'router.fonetalk.com.br',
+        ]));
+    } else {
+        suggestions = JSON.parse(suggestions);
+    }
+
+
+    // Elementos do DOM
+    const input = document.getElementById("serverIp");
+    // #suggestionList > li:nth-child
+    const suggestionList = document.getElementById("suggestionList");
+    // deixar as sugestões maiores
+    suggestionList.style.width = input.offsetWidth + "px";
+    // padding das sugestões
+    suggestionList.style.padding = "0.5rem";
+
+    // Evento de digitação no input
+    input.addEventListener("input", function () {
+        const query = this.value.toLowerCase();
+
+        // Remove sugestões anteriores
+        suggestionList.innerHTML = "";
+
+        // Filtrar sugestões com base no texto digitado
+        const filteredSuggestions = suggestions.filter((item) =>
+            item.toLowerCase().includes(query)
+        );
+
+        // Exibir sugestões encontradas
+        if (filteredSuggestions.length > 0 && query !== "") {
+            suggestionList.classList.remove("d-none");
+
+            filteredSuggestions.forEach((suggestion) => {
+                const listItem = document.createElement("li");
+                listItem.textContent = suggestion;
+                listItem.classList.add(
+                    "list-group-item",
+                    "list-group-item-action",
+                    "bg-dark",
+                    "text-white",
+                    "border-0"
+                );
+                // Evento ao clicar em uma sugestão
+                listItem.addEventListener("click", function () {
+                    input.value = suggestion; // Define o valor no campo
+                    suggestionList.classList.add("d-none"); // Esconde as sugestões
+                });
+                suggestionList.appendChild(listItem);
+            });
+        } else {
+            suggestionList.classList.add("d-none");
+        }
+    });
+
+    // Esconder sugestões ao clicar fora
+    document.addEventListener("click", function (event) {
+        if (!suggestionList.contains(event.target) && event.target !== input) {
+            suggestionList.classList.add("d-none");
+        }
+    });
+    window.registerTrunk = async () => {
+        const serverName = document.getElementById("serverName").value;
+        const serverIp = document.getElementById("serverIp").value;
+        const serverUser = document.getElementById("serverUser").value;
+        const serverPass = document.getElementById("serverPass").value;
+        const authToken = (new UserManager).getValue('token');
+        const noForce = document.getElementById("noForce").value;
+        const maxRedial = document.getElementById("maxRedial").value;
+        const maxTime = document.getElementById("maxTime").value;
+        const price = document.getElementById("price").value;
+        const registerAccount = document.querySelector('.form-check-input').checked;
+        if (!suggestions.includes(serverIp)) {
+            suggestions.push(serverIp);
+            localStorage.setItem('suggestions', JSON.stringify(suggestions));
+        }
+        let response = await fetch('/registerTrunk', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                serverName: serverName,
+                serverIp: serverIp,
+                serverUser: serverUser,
+                serverPass: serverPass,
+                authToken: authToken,
+                maxTime: maxTime,
+                noForce: noForce,
+                maxRedial: maxRedial,
+                registerAccount: registerAccount,
+                price: price,
+                codecs: document.getElementById("codecs").value,
+                port: document.getElementById("portServer").value,
+                removePrefix: document.getElementById("removePrefix").value,
+                addPrefix: document.getElementById("addPrefix").value,
+            })
+        });
+        let result = await response.json();
+        if (result.success) {
+            document.getElementById("addServerModal").click();
+            document.getElementById("serverName").value = "";
+            document.getElementById("serverIp").value = "";
+            document.getElementById("serverUser").value = "";
+            document.getElementById("serverPass").value = "";
+            getTrunks();
+            $('#addServerModal').modal('hide');
+            return toast("Servidor adicionado com sucesso", "Sucesso", 3000, "success");
+        } else {
+            return toast("Erro ao adicionar servidor: " + result.message, "Erro", 3000, "error");
+        }
+    }
+
+
+    const endPoint = '/listTrunks';
+    window.getTrunks = async () => {
+        // Limpar tabela
+        const start = (currentPage - 1) * recordsPerPage;
+
+        //tableBody.innerHTML = "";
+        let response = await fetch(endPoint, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                authToken: (new UserManager).getValue('token'),
+                returnStatus: true,
+                pagination: {
+                    start: start,
+                    end: start + recordsPerPage,
+                }
+            })
+        });
+        let resss = await response.json();
+        let servers = resss.servers;
+        totalRecordsCallPage = resss.totalRecords;
+        document.getElementById("totalRecordsCallPage").innerText = totalRecordsCallPage;
+        document.getElementById("currentPageStart").innerText = start + 1;
+        document.getElementById("currentPageEnd").innerText = Math.min(start + recordsPerPage, totalRecordsCallPage);
+        document.getElementById("serversTableBody").style.display = 'table-row-group';
+
+
+        let row = '';
+        servers.forEach((server, index) => {
+
+
+            // Definir ícones de status
+            let statusIcon;
+            if (server.status === "online") {
+                statusIcon = '<i class="fas fa-circle text-success"></i>';
+            } else if (server.status === "offline") {
+                statusIcon = '<i class="fas fa-circle text-danger"></i>';
+            } else {
+                statusIcon = '<i class="fas fa-circle text-warning"></i>';
+            }
+            row += `
+            <tr>
+            <td class="align-middle text-center">${statusIcon}</td>
+            <td onclick="openTrunk(${server.id})" class="align-middle tdr" style="font-size: 0.9rem;">${delimiterString(server.name, 18)}</td>
+            <td class="align-middle tdr" style="font-size: 0.9rem;">R$ ${(server.balance).toLocaleString('pt-BR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            })}</td>
+            <td class="align-middle tdr" style="font-size: 0.9rem;">${server.d2}</td>
+            <td class="align-middle tdr" style="font-size: 0.9rem;">R$ ${server.price || '0.0'}</td>
+            <td class="align-middle tdr" style="font-size: 0.9rem;">${server.ip}</td>
+            <td class="align-middle text-center">
+                <button class="btn btn-danger text-light" onclick="deleteServer('${server.id}')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+            </tr>
+        `;
+
+
+        });
+        tableBody.innerHTML = row;
+
+
+        // Atualizar botões de paginação
+        updatePaginationButtons();
+
+
+    }
+
+    window.updatePaginationButtons = () => {
+        const totalPages = Math.ceil(totalRecordsCallPage / recordsPerPage);
+        const paginationContainer = document.getElementById('paginationButtons');
+        paginationContainer.innerHTML = '';
+
+        const startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+        const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+        if (startPage > 1) {
+            paginationContainer.innerHTML += `<button class="btn btn-secondary" onclick="setPage(1)">1</button>`;
+        }
+        if (endPage === totalPages) {
+            paginationContainer.innerHTML += `<button class="btn btn-secondary">...</button>`;
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            const span = document.createElement('span');
+            span.classList.add('btn-group');
+            span.innerHTML = `
+                <button class="btn btn-${
+                i === currentPage ? 'primary' : 'secondary'
+            } ${i === currentPage ? 'active' : ''}" onclick="setPage(${i})">${i}</button>
+            `;
+            paginationContainer.appendChild(span);
+        }
+
+        if (endPage < totalPages) {
+            paginationContainer.innerHTML += `<button class="btn btn-secondary">...</button>`;
+            paginationContainer.innerHTML += `<button class="btn btn-secondary" onclick="setPage(${totalPages})">${totalPages}</button>`;
+        }
+
+        document.getElementById('prevPage').disabled = currentPage === 1;
+        document.getElementById('nextPage').disabled = currentPage === totalPages;
+    };
+    document.getElementById('prevPage').addEventListener('click', () => {
+        if (currentPage > 1) {
+            setPage(currentPage - 1);
+        }
+    });
+
+    document.getElementById('nextPage').addEventListener('click', () => {
+        const totalPages = Math.ceil(totalRecordsCallPage / recordsPerPage);
+        if (currentPage < totalPages) {
+            setPage(currentPage + 1);
+        }
+    });
+
+    window.setPage = (page) => {
+        currentPage = page;
+        getTrunks();
+    };
+    const tableBody = document.getElementById("serversTableBody");
+
+    window.openTrunk = (id) => {
+        $('#modalTrunk').modal('show');
+        fetchTrunkData(id);
+    }
+
+
+    window.deleteServer = (id) => {
+        if (!confirm(`Deseja realmente excluir o servidor ${name}?`)) {
+            return toast("Operação cancelada", "Cancelado", 3000, "warning");
+        }
+        fetch('/deleteTrunk', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({authToken: (new UserManager).getValue('token'), id: id})
+        }).then(response => response.json()).then(result => {
+            if (result.success) {
+                toast("Servidor excluído com sucesso", "Sucesso", 3000, "success");
+                document.getElementById("serversTableBody").querySelectorAll("tr").forEach((tr) => {
+                    if (tr.querySelector("button").getAttribute("onclick").includes(id)) {
+                        tr.remove();
+                    }
+                });
+            } else {
+                toast("Erro ao excluir servidor: " + result.message, "Erro", 3000, "error");
+            }
+        });
+    }
+    getTrunks();
+    setInterval(getTrunks, 2000)
+
+
+</script>
+

@@ -1,0 +1,2239 @@
+<style>
+    /* Estilos Gerais */
+    .btn-selected {
+        background-color: #f9ca24 !important;
+        color: #000;
+    }
+
+    .btn-available {
+        background-color: #343a40;
+        color: #000000;
+    }
+
+    .btn-available:hover {
+        background-color: #f9ca24;
+        color: #000 !important;
+    }
+
+    #drawflow {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+
+
+        background-color: #4468cd;
+        background-image: radial-gradient(var(--border-color) 1px, transparent 1px);
+        background-size: 20px 20px;
+        height: calc(100vh - 135px);
+        position: relative;
+        overflow: hidden;
+        border-radius: 8px;
+    }
+
+    #drawflow > div {
+        position: absolute;
+        height: 5000px;
+        width: 5000px;
+        transform-origin: 0 0;
+        top: 0;
+        left: 0;
+    }
+
+    /* Adicione isso para a div pai */
+    .parent-container {
+        display: flex;
+        width: 100%;
+        min-width: 0;
+    }
+
+
+    .drawflow .drawflow-node {
+        background: #343a40;
+        color: #fff;
+        border-radius: 8px;
+        border: 2px solid #565656;
+        width: 300px;
+
+        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.4);
+    }
+
+    .drawflow .drawflow-node.selected {
+        border: 2px solid #f9ca24;
+        box-shadow: 0 0 10px #f9ca24;
+    }
+
+    .drawflow .drawflow-node .title {
+        background: #2c3e50;
+        border-top-left-radius: 6px;
+        border-top-right-radius: 6px;
+        font-weight: bold;
+        border-bottom: 1px solid #565656;
+    }
+
+    .drawflow .drawflow-node .node-content {
+
+    }
+
+    .drawflow .connection {
+        stroke: #f9ca24;
+        stroke-width: 2px;
+    }
+
+    .drawflow .connection .main-path {
+        stroke: #f9ca24;
+        stroke-width: 2px;
+    }
+
+    .drawflow .drawflow-node .input, .drawflow .drawflow-node .output {
+        background: #f9ca24;
+        border: 2px solid #f9ca24;
+    }
+
+    .drawflow .drawflow-node .input:hover, .drawflow .drawflow-node .output:hover {
+        background: #ffffff;
+    }
+
+    /* Cores personalizadas para outputs específicos */
+    .drawflow .drawflow-node .output[data-color] {
+        background-color: attr(data-color);
+        border-color: attr(data-color);
+    }
+
+    /* Cores predefinidas para saídas condicionais */
+    .drawflow .drawflow-node .output.output-true {
+        background: #28a745;
+        border: 2px solid #28a745;
+    }
+
+    .drawflow .drawflow-node .output.output-false {
+        background: #dc3545;
+        border: 2px solid #dc3545;
+    }
+
+    /* Estilos para o painel lateral */
+    .sidebar {
+        background-color: #283046;
+        border-radius: 6px;
+        padding: 12px 8px 3px;
+        height: 85vh;
+        overflow-y: auto;
+    }
+
+    .sidebar-node {
+        padding: 10px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 6px;
+        margin-bottom: 10px;
+        cursor: grab;
+        color: #fff;
+        display: flex;
+        align-items: center;
+    }
+
+    .sidebar-node i {
+        margin-right: 8px;
+        font-size: 1.2em;
+    }
+
+    .sidebar-node:hover {
+        background: #3c4f62;
+    }
+
+    /* Botões de exportação/importação */
+    .action-buttons {
+        margin-bottom: 15px;
+    }
+
+    /* Estilos específicos para os nós */
+    .drawflow .drawflow-node.welcome {
+        border-left: 5px solid #28a745;
+    }
+
+    .drawflow .drawflow-node.audio {
+        border-left: 5px solid #007bff;
+    }
+
+    .drawflow .drawflow-node.dtmf {
+        border-left: 5px solid #fd7e14;
+    }
+
+    .drawflow .drawflow-node.collect {
+        border-left: 5px solid #6f42c1;
+    }
+
+    .drawflow .drawflow-node.condition {
+        border-left: 5px solid #17a2b8;
+    }
+
+    .drawflow .drawflow-node.transfer {
+        border-left: 5px solid #dc3545;
+    }
+
+    .drawflow .drawflow-node.request {
+        border-left: 5px solid #17a2b8;
+    }
+
+    .drawflow .drawflow-node.hangup {
+        border-left: 5px solid #6c757d;
+    }
+
+    .card-header {
+        padding: 5px 5px 0px !important;
+    }
+</style>
+@import(stylecpg)
+
+<div class="row ">
+    <div class="col-sm-12">
+
+
+        <div class="card-header d-flex justify-content-between align-items-center"
+             style="display: none !important;">
+            <h5 id="campaignStatus"><i class="fas fa-project-diagram"></i> <span class="text-white">Editor de URA e Estratégias de Discagem</span>
+            </h5>
+            <div>
+                <button class="btn btn-outline-secondary" id="btnShowDialingTab"><i class="fas fa-phone"></i>
+                    Discagem
+                </button>
+                <button class="btn btn-outline-warning active" id="btnShowUraTab"><i class="fas fa-sitemap"></i> URA
+                </button>
+            </div>
+        </div>
+
+        <!-- Conteúdo com Tabs -->
+        <div class="">
+            <!-- Tab de Discagem -->
+            <div aria-labelledby="navdisk" class="tab-content tab-pane fade show active" id="dialingTab"
+                 role="tabpanel" style="display: block !important;"
+
+            >
+                <div class="row">
+                    <div class="col-sm-6">
+                        <!-- Configurações de Campanha -->
+                        <div class="bg-dark text-blue card">
+                            <div class="card-header">
+                                <h5 id="campaignStatusHeader">Carregando...</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="config-group">
+                                    <!-- Botões de controle -->
+                                    <div class="text-lg-start">
+                                        <button class="btn btn-success" id="startCampaign">
+                                            <i class="fas fa-play"></i> Iniciar
+                                        </button>
+                                        <button class="btn btn-warning" id="resetCampaign">
+                                            <i class="fa fa-rotate-right"></i> Reiniciar
+                                        </button>
+                                    </div>
+
+                                    <!-- Corrotinas -->
+                                    <div class="config-group">
+                                        <label for="simultaneousCalls" style="margin-bottom: -20px"><i
+                                                class="fas fa-phone"></i>
+                                            Corrotinas: (Máx 250):
+                                            <code class="h5 text-danger rounded-pill bg-light p-1">
+                                                <i class="fa-sharp fa-regular fa-hexagon-nodes-bolt"></i>
+                                                <span id="vSimultaneousCalls">0</span>&nbsp;
+                                            </code>
+                                        </label>
+                                        <button class="btn btn-primary" onclick="adjustSimultaneousCalls(1)">
+                                            <i class="fa fa-plus text-white"></i>
+                                        </button>
+                                        <input class="form-range" id="simultaneousCalls" max="250" min="1"
+                                               type="range" value="0">
+                                    </div>
+
+                                    <!-- Tempo de espera -->
+                                    <div class="config-group">
+                                        <label class="form-label" for="awaitSignal"
+                                               style="margin-bottom: -4px">Tempo máximo de
+                                            espera:
+                                            <code class="h5 text-danger rounded-pill bg-light p-1" id="">
+                                                <i class="fa fa-clock"></i> <span id="vwaitsig">0</span>s&nbsp;
+                                            </code>
+                                        </label>
+                                        <input class="form-range" id="awaitSignal" max="120" min="1" type="range"
+                                               value="0">
+                                    </div>
+
+                                    <!-- Áudio principal -->
+                                    <div class="config-group mt-3">
+                                        <label for="audio-principal"><i class="fas fa-music"></i> Áudio
+                                            Principal:</label>
+                                        <select class="form-control" id="audio-principal"></select>
+                                    </div>
+
+                                    <!-- Lista de telefones -->
+                                    <div class="config-group mt-3">
+                                        <label class="form-label" for="listPhones" style="margin-bottom: -5px">
+                                            <i class="fa fa-user"></i> Lista selecionada para a campanha:
+                                        </label>
+                                        <div class="input-group">
+                                            <select class="form-control" id="listPhones">
+                                                <option>Adicione uma lista primeiro!</option>
+                                            </select>
+                                            <button class="btn btn-danger" id="deleteList">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                            <label class="btn btn-primary" for="phoneUpload"
+                                                   style="border-bottom-right-radius: 4px; border-top-right-radius: 4px">
+                                                <i class="fa fa-plus"></i> Adicionar
+                                            </label>
+                                            <input id="phoneUpload" style="display: none" type="file">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Estatísticas -->
+                        <div class="control-card">
+                            <div class="card-header">
+                                <i class="fas fa-chart-line text-primary"></i>
+                                <span class="card-title h5">Estatísticas</span>
+                            </div>
+                            <div class="row g-1 p-1">
+                                <div class="col-md-3 col-6">
+                                    <div class="stat-card">
+                                        <div class="stat-title">Total</div>
+                                        <div class="stat-value" id="remaignsCalls">...</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="stat-card">
+                                        <div class="stat-title">Discados</div>
+                                        <div class="stat-value" id="callsFeitas">...</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="stat-card">
+                                        <div class="stat-title">Ativos</div>
+                                        <div class="stat-value" id="currentsCalls">...</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="stat-card">
+                                        <div class="stat-title">Capturados</div>
+                                        <div class="stat-value" id="refers">...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-sm-6 mb-sm-0">
+                        <!-- Configuração de chamada -->
+                        <div class="bg-dark card text-blue">
+                            <div class="card-header">
+                                <h5><i class="fa-duotone fa-solid fa-phone-intercom"></i> <span class="text-white">Configuração de chamada</span>
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="">
+                                    <input accept="audio/*" class="form-control" id="audio-arquivo"
+                                           style="display: none" type="file">
+                                    <div class="text-lg-start">
+                                        <label class="btn btn-warning" for="audio-arquivo">
+                                            <i class="fas fa-music"></i> Novo Som
+                                        </label>
+                                        <button class="btn btn-primary btn-block" id="definir-tecla">
+                                            <i class="fa-light fa-mobile-retro"></i> Teclas
+                                        </button>
+                                    </div>
+                                </div>
+                                <label class="form-label" for="listSounds">Áudios Disponíveis</label>
+                                <ul class="list-group" id="listSounds"
+                                    style="max-height: 300px; overflow-y: auto; border: none"></ul>
+                            </div>
+                        </div>
+
+                        <!-- Funções ao digitar -->
+                        <div class="control-card">
+                            <div class="card-header">
+                                <i class="fas fa-chart-line text-primary"></i>
+                                <span class="card-title h5">Funções ao digitar</span>
+                            </div>
+                            <div style="max-height: 220px; overflow-y: auto; border-radius: 4px;border: none; --bs-scroll-height: 100%; --bs-scroll-width: 100%;">
+                                <ul class="list-group" id="lista-acoes-teclas">
+                                    <li class="text-center">Nenhuma ação definida</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab de URA -->
+            <div class="tab-content tab-pane fade" id="uraTab"
+                 style="display: none !important; background: transparent !important;">
+                <div class="row">
+
+
+                    <div class="col-md-12">
+                        <div class="bd-example mt-2">
+
+
+                            <!-- Botões de ação -->
+                            <div class="btn-group" style="
+                                top: 85px;
+                                left: 35px;
+                                z-index: 100;
+                                position: absolute;
+">
+                                <button class="btn" id="btnExportUra" style="background: rgba(0,0,0,0.8); height: 32px">
+                                    <img src="img/img_1.png" width="36" alt="icon">
+                                </button>
+                                <label class="btn  " for="importUraFile"
+                                       style="background: rgba(0,0,0,0.8); height: 32px">
+                                    <img src="img/download-file.png" width="26" alt="icon">
+                                </label>
+                                <input accept=".json" class="d-none" id="importUraFile" type="file">
+                                <button class="btn  " id="btnSaveUra" style="background: rgba(0,0,0,0.8); height: 32px">
+                                    <img src="img/sv.png" width="36" alt="icon">
+                                </button>
+                            </div>
+                            <div class="btn-group">
+                                <div class="sidebar-node" data-node-type="condition" draggable="true">
+                                    <i class="fas fa-code-branch"></i> Condição
+                                </div>
+
+                            </div><!-- /btn-group -->
+                            <div class="btn-group">
+                                <div class="sidebar-node" data-node-type="collect" draggable="true">
+                                    <i class="fas fa-keyboard"></i> Coletar Dados
+                                </div>
+                            </div><!-- /btn-group -->
+                            <div class="btn-group">
+                                <div class="sidebar-node" data-node-type="audio" draggable="true">
+                                    <i class="fas fa-music"></i> Áudio
+                                </div>
+                            </div><!-- /btn-group -->
+                            <div class="btn-group">
+                                <div class="sidebar-node" data-node-type="dtmf" draggable="true">
+                                    <i class="fas fa-list-ul"></i> Teclado Numérico
+                                </div>
+
+
+                            </div><!-- /btn-group -->
+                            <div class="btn-group">
+                                <div class="sidebar-node" data-node-type="request" draggable="true">
+                                    <i class="fas fa-globe"></i> Requisição
+                                </div>
+                            </div><!-- /btn-group -->
+                            <div class="btn-group">
+                                <div class="sidebar-node" data-node-type="welcome" draggable="true">
+                                    <i class="fas fa-flag-checkered"></i> Início
+                                </div>
+                            </div><!-- /btn-group -->
+                            <div class="btn-group">
+
+                                <div class="sidebar-node" data-node-type="transfer" draggable="true">
+                                    <i class="fas fa-exchange-alt"></i> Transferência
+                                </div>
+                            </div>
+                            <div class="btn-group">
+                                <div class="sidebar-node" data-node-type="hangup" draggable="true">
+                                    <i class="fas fa-phone-slash"></i> Desligar
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div class="zoom-buttons">
+                            <button class="btn btn-outline-secondary" id="zoomIn" style="
+                                background: rgba(0,0,0,0.6);
+                                border-color: rgba(0, 0, 0, 0.2);
+                                color: #fff;
+">
+                                <i class="fa fa-search-plus"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary" id="zoomOut" style="
+                                background: rgba(0,0,0,0.6);
+                                border-color: rgba(0, 0, 0, 0.2);
+                                color: #fff;
+">
+                                <i class="fa fa-search-minus"></i>
+                            </button>
+
+
+                        </div>
+                        <style>
+                            .zoom-buttons {
+                                position: absolute;
+                                top: 85px;
+                                right: 25px;
+                                z-index: 100;
+                            }
+
+                            .zoom-buttons button {
+                                border-radius: 4px;
+                                padding: 5px 10px;
+                                margin-left: 5px;
+                            }
+
+                            .zoom-buttons button:first-child {
+                                margin-left: 0;
+                            }
+
+                            .zoom-buttons button:hover {
+                                background: #007bff;
+                            }
+                        </style>
+                        <div class="drawflow-container" id="drawflow"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal para definir as ações das teclas -->
+<div class="modal" id="modal-definir-tecla">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Definir Ação da Tecla</h5>
+                <button aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"></button>
+            </div>
+            <div class="modal-body">
+                <div class="config-group">
+                    <label>Selecione uma Tecla:</label>
+                    <div class="d-flex flex-wrap" id="tecla-options">
+                        <!-- Botões das teclas de 0 a 9 serão inseridos aqui -->
+                    </div>
+                </div>
+                <div class="config-group mt-3">
+                    <label for="tecla-acao"><i class="fas fa-tasks"></i> Ação:</label>
+                    <select class="form-control" id="tecla-acao">
+                        <option value="desligar">Desligar</option>
+                        <option value="audio">Áudio</option>
+                        <option value="encaminhar">Transferir para grupo de agentes</option>
+                    </select>
+                </div>
+                <div class="additional-options" id="additional-options"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" id="salvar-tecla-acao">Salvar Ação</button>
+                <button class="close-modal btn btn-secondary" id="fechar-modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para configurar componente -->
+<div class="modal" id="modal-configure-node">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="node-config-title">Configurar Componente</h5>
+                <button aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"></button>
+            </div>
+            <div class="modal-body" id="node-config-body">
+                <!-- Conteúdo dinâmico será inserido aqui -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" id="save-node-config">Salvar Configuração</button>
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Código do Modal para JSON Exportado -->
+<div class="modal" id="modal-export-json">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">JSON Exportado</h5>
+                <button aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <textarea class="form-control" id="exported-json"
+                              style="height: 300px; font-family: monospace;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" id="copy-json">Copiar JSON</button>
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Variáveis Globais
+    window.editor = null;
+    let currentNodeId = null;
+    let isPlaying = false;
+    let teclaSelecionada = 0;
+    let teclasDefinidas = {};
+
+
+    // Inicializar tabs
+    initTabs();
+
+    // Inicializar o DrawFlow
+    initDrawFlow();
+
+    // Carregar dados da URA existente
+
+
+    // Configurar listeners para os botões do DrawFlow
+    setupDrawFlowListeners();
+
+    // Inicializar eventos da interface de discagem
+
+
+    window.initTabs = initTabs;
+    window.initDrawFlow = initDrawFlow;
+    window.setupDrawFlowListeners = setupDrawFlowListeners;
+    window.initDialingUI = initDialingUI;
+    window.loadUraData = loadUraData;
+
+    initDialingUI();
+
+
+    // Inicialização das Tabs
+    function initTabs() {
+        const dialingTab = document.getElementById('dialingTab');
+        const uraTab = document.getElementById('uraTab');
+        const btnDialing = document.getElementById('btnShowDialingTab');
+        const btnUra = document.getElementById('btnShowUraTab');
+
+        btnDialing.addEventListener('click', () => {
+            uraTab.style.display = 'none';
+            dialingTab.style.display = 'block';
+            btnUra.classList.remove('active');
+            btnDialing.classList.add('active');
+        });
+
+        btnUra.addEventListener('click', () => {
+            dialingTab.style.display = 'none';
+            uraTab.style.display = 'block';
+            btnDialing.classList.remove('active');
+            btnUra.classList.add('active');
+
+            // Ao mudar para a tab URA, atualizar o editor
+            if (editor) {
+                editor.zoom_refresh();
+            }
+        });
+
+
+    }
+
+    // Inicialização do DrawFlow
+    function initDrawFlow() {
+        const container = document.getElementById('drawflow');
+        editor = new Drawflow(container);
+        editor.reroute = true;
+        editor.reroute_fix_curvature = true;
+        editor.force_first_input = false;
+        editor.start();
+
+        // Registrar os nós
+        registerNodes();
+
+        // Configurar eventos do editor
+        editor.on('nodeCreated', function (id) {
+            console.log('Node created ' + id, id, getNodeTypeById(id), editor.getNodeFromId(id).data);
+            updateNodeHTML(id, getNodeTypeById(id), editor.getNodeFromId(id).data);
+        });
+
+        editor.on('nodeRemoved', function (id) {
+            console.log('Node removed ' + id);
+        });
+        document.getElementById('zoomIn').addEventListener('click', () => {
+            editor.zoom_in();
+        })
+        document.getElementById('zoomOut').addEventListener('click', () => {
+            editor.zoom_out();
+        })
+
+        editor.on('nodeSelected', function (id) {
+            console.log('Node selected ' + id);
+            currentNodeId = id;
+            //showNodeConfiguration(id);
+
+            // Atualizar cores dos outputs se for um nó do tipo condição
+            const nodeType = getNodeTypeById(id);
+            if (nodeType === 'condition') {
+                const nodeElement = document.getElementById(`node-${id}`);
+                if (nodeElement) {
+                    const outputs = nodeElement.querySelectorAll('.output');
+                    if (outputs.length >= 2) {
+                        outputs[0].classList.add('output-true');
+                        outputs[1].classList.add('output-false');
+                    }
+                }
+            }
+        });
+        editor.on('nodeDeselected', function (id) {
+            console.log('Node deselected ' + id);
+            currentNodeId = null;
+        })
+
+        editor.on('moduleCreated', function (name) {
+            console.log('Module Created ' + name);
+        });
+
+        editor.on('moduleChanged', function (name) {
+            console.log('Module Changed ' + name);
+        });
+
+        editor.on('connectionCreated', function (connection) {
+            console.log('Connection created');
+            console.log(connection);
+        });
+
+        editor.on('connectionRemoved', function (connection) {
+            console.log('Connection removed');
+            console.log(connection);
+        });
+
+        editor.on('mouseMove', function (position) {
+            // console.log('Position mouse x:' + position.x + ' y:' + position.y);
+        });
+
+        editor.on('nodeMoved', function (id) {
+            console.log('Node moved ' + id);
+        });
+
+        editor.on('zoom', function (zoom) {
+            console.log('Zoom level ' + zoom);
+        });
+
+        editor.on('translate', function (position) {
+            // console.log('Translate x:' + position.x + ' y:' + position.y);
+        });
+
+        editor.on('addReroute', function (id) {
+            console.log('Reroute added ' + id);
+        });
+
+        editor.on('removeReroute', function (id) {
+            console.log('Reroute removed ' + id);
+        });
+
+
+
+
+    }
+
+    // Registrar nós do DrawFlow
+    function registerNodes() {
+        // Configurar o drag and drop dos componentes
+        const sidebarNodes = document.querySelectorAll('.sidebar-node');
+        sidebarNodes.forEach(node => {
+            node.addEventListener('dragstart', (event) => {
+                event.dataTransfer.setData('node-type', node.getAttribute('data-node-type'));
+            });
+        });
+
+        // Permitir que o editor aceite os componentes arrastados
+        const drawflowContainer = document.getElementById('drawflow');
+        drawflowContainer.addEventListener('dragover', (event) => {
+
+            event.preventDefault();
+        });
+
+        drawflowContainer.addEventListener('drop', (event) => {
+            event.preventDefault();
+            const nodeType = event.dataTransfer.getData('node-type');
+            if (nodeType) {
+                const rect = drawflowContainer.getBoundingClientRect();
+                const position = editor.canvas_x;
+                const posX = event.clientX - rect.left - position.x;
+                const posY = event.clientY - rect.top - position.y;
+
+                addNodeToDrawFlow(nodeType, posX, posY);
+            }
+        });
+    }
+
+    window.getNodeTypeById = function (id) {
+        return editor.getNodeFromId(id).name;
+    }
+
+    // Adicionar nó ao DrawFlow
+    function addNodeToDrawFlow(nodeType, posX, posY) {
+        let nodeHtml = '';
+        let nodeClass = nodeType;
+        let nodeData = {};
+        let outputs = 1;
+
+        // Flag para verificar se é um nó de condição que precisa de outputs coloridos
+        let needsColoredOutputs = false;
+
+        switch (nodeType) {
+            case 'welcome':
+                nodeHtml = `<div class="title">Início</div>
+                          <div class="node-content"><p>Ponto de entrada da URA</p></div>`;
+                nodeData = {message: "Bem-vindo ao sistema URA"};
+                break;
+
+            case 'audio':
+                nodeHtml = `<div class="title">Áudio</div>
+                          <div class="node-content"><select class="form-control"><option>Selecione um áudio</option></select></div>`;
+                nodeData = {file: ""};
+                break;
+
+            case 'dtmf':
+                nodeHtml = `<div class="title">Se dígitar:</div>
+                          <div class="node-content"><p>Digite uma opção</p></div>`;
+                outputs = 1;
+                break;
+
+            case 'collect':
+                nodeHtml = `<div class="title">Coletar Valor</div>
+                          <div class="node-content">
+                            <select class="form-control">
+                              <option value="digits">Dígitos</option>
+                              <option value="voice">Voz</option>
+                            </select>
+                            <div class="input-group">
+                              <input type="number" class="form-control" min="1" max="20" value="5" placeholder="Máx. dígitos">
+                              <input type="number" class="form-control" min="1" max="30" value="5" placeholder="Timeout (s)">
+                            </div>
+                            <select class="form-control audio-select"><option>Selecione o áudio de instrução</option></select>
+                          </div>`;
+                nodeData = {collectType: "digits", maxDigits: "5", timeout: "5", audioPrompt: ""};
+                break;
+
+            case 'condition':
+                nodeHtml = `<div class="title">Condição</div>
+                          <div class="node-content">
+                            <select class="form-control">
+                              <option value="equal">Igual a</option>
+                              <option value="not_equal">Diferente de</option>
+                              <option value="greater">Maior que</option>
+                              <option value="less">Menor que</option>
+                              <option value="contains">Contém</option>
+                            </select>
+                            <input type="text" class="form-control" placeholder="Valor para comparação" value="1">
+                            <select class="form-control">
+                              <option value="input">Valor digitado</option>
+                              <option value="queue_position">Posição na fila</option>
+                              <option value="time">Horário atual</option>
+                              <option value="day">Dia da semana</option>
+                              <option value="custom">Valor personalizado</option>
+                            </select>
+                            <div class="d-flex justify-content-between">
+                              <small><span class="badge bg-success">Verdadeiro</span></small>
+                              <small><span class="badge bg-danger">Falso</span></small>
+                            </div>
+                          </div>`;
+                needsColoredOutputs = true;
+                nodeData = {conditionType: "equal", comparisonValue: "1", sourceType: "input"};
+                outputs = 2;
+                break;
+
+            case 'transfer':
+                nodeHtml = `<div class="title">Transferência</div>
+                          <div class="node-content"><select class="form-control"><option>Selecione um grupo</option></select></div>`;
+                nodeData = {group: ""};
+                outputs = 0;
+                break;
+
+            case 'request':
+                nodeHtml = `<div class="title">Requisição</div>
+                          <div class="node-content">
+                            <input type="text" class="form-control" placeholder="URL da requisição" value="">
+                            <select class="form-control">
+                              <option value="get">GET</option>
+                              <option value="post">POST</option>
+                            </select>
+                            <input type="text" class="form-control" placeholder="Parâmetros (opcional)" value="">
+                          </div>`;
+                nodeData = {url: "", method: "get", params: ""};
+                outputs = 1;
+                break;
+
+            case 'hangup':
+                nodeHtml = `<div class="title">Desligar</div>
+                          <div class="node-content"><p>Encerrar chamada</p></div>`;
+                outputs = 0;
+                break;
+        }
+
+        // Adicionar nó ao editor
+        const nodeId = editor.addNode(
+            nodeType,
+            1, // Número de entradas
+            outputs, // Número de saídas
+            posX,
+            posY,
+            nodeClass,
+            nodeData,
+            nodeHtml,
+            false // não é do tipo node (para compatibilidade)
+        );
+
+        // Aplicar cores aos outputs se for um nó de condição
+        if (needsColoredOutputs) {
+            setTimeout(() => {
+                const nodeElement = document.getElementById(`node-${nodeId}`);
+                if (nodeElement) {
+                    const outputs = nodeElement.querySelectorAll('.output');
+                    if (outputs.length >= 2) {
+                        // Primeiro output (Verdadeiro) - verde
+                        outputs[0].classList.add('output-true');
+                        // Segundo output (Falso) - vermelho
+                        outputs[1].classList.add('output-false');
+                    }
+                }
+            }, 100); // Pequeno delay para garantir que os elementos foram renderizados
+        }
+    }
+
+    // Carregar dados da URA existente
+    async function loadUraData() {
+
+        try {
+            const response = await fetch('/getUraFlow', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    authToken: new UserManager().getValue('token')
+                })
+            });
+
+            const data = await response.json();
+
+            if (data && data.flow && data.flow.drawflow) {
+
+                editorImport(data.flow);
+                console.log('URA carregada com sucesso');
+            }
+        } catch (error) {
+
+            console.error('Erro ao carregar dados da URA:', error);
+        }
+        // zoom -3x
+    }
+
+    // Configurar listeners para botões do DrawFlow
+    function setupDrawFlowListeners() {
+        // Exportar JSON
+        document.getElementById('btnExportUra').addEventListener('click', () => {
+            const exportedData = editor.export();
+            document.getElementById('exported-json').value = JSON.stringify(exportedData, null, 2);
+            new bootstrap.Modal(document.getElementById('modal-export-json')).show();
+        });
+
+        // Copiar JSON exportado
+        document.getElementById('copy-json').addEventListener('click', () => {
+            const jsonTextarea = document.getElementById('exported-json');
+            jsonTextarea.select();
+            document.execCommand('copy');
+            toast('JSON copiado para a área de transferência', 'Sucesso', 3000, 'success');
+        });
+
+        // Importar JSON
+        document.getElementById('importUraFile').addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const importData = JSON.parse(e.target.result);
+                        console.log('Importando JSON:', importData);
+                        if (importData.drawflow) {
+                            editorImport(importData.flow);
+                        } else {
+                            editorImport(importData);
+                        }
+
+                        toast('Fluxo importado com sucesso', 'Sucesso', 3000, 'success');
+                    } catch (error) {
+                        toast('Erro ao importar arquivo JSON', 'Erro', 5000, 'error');
+                        console.error('Erro ao importar:', error);
+                    }
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        // Salvar configuração
+        document.getElementById('btnSaveUra').addEventListener('click', async () => {
+            try {
+                const flowData = editor.export();
+                const response = await fetch('/saveUraFlow', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        authToken: new UserManager().getValue('token'),
+                        flow: JSON.stringify(flowData)
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    toast('Configuração da URA salva com sucesso', 'Sucesso', 3000, 'success');
+                } else {
+                    toast('Erro ao salvar configuração: ' + (result.error || 'Erro desconhecido'), 'Erro', 5000, 'error');
+                }
+            } catch (error) {
+                toast('Erro ao salvar configuração', 'Erro', 5000, 'error');
+                console.error('Erro ao salvar:', error);
+            }
+        });
+
+        // Salvar configuração de nó
+        document.getElementById('save-node-config').addEventListener('click', () => {
+            if (currentNodeId) {
+                saveNodeConfiguration(currentNodeId);
+                bootstrap.Modal.getInstance(document.getElementById('modal-configure-node')).hide();
+            }
+        });
+    }
+
+    window.editorImport = (dataRaw) => {
+        let kt = Object.keys(dataRaw);
+        let data = {};
+        if (!kt.includes('flow')) {
+            data = dataRaw;
+        }
+        if (kt.includes('flow')) {
+            data = dataRaw.flow;
+        }
+
+        editor.import(data);
+        // percorrer objeto data
+        for (const key in data['drawflow']) {
+            // percorrer data
+            for (const key2 in data['drawflow'][key]) {
+                let datak = data['drawflow'][key][key2];
+                let idsNodes = Object.keys(datak);
+                for (const nodeId in idsNodes) {
+                    console.log(datak[idsNodes[nodeId]]);
+                    updateNodeHTML(datak[idsNodes[nodeId]]['id'], datak[idsNodes[nodeId]]['name'], datak[idsNodes[nodeId]]['data'])
+                }
+            }
+        }
+
+    }
+
+    // Mostrar configuração do nó selecionado
+    window.showNodeConfiguration = (nodeId) => {
+        const node = editor.getNodeFromId(nodeId);
+        const nodeType = node.name;
+        const nodeData = node.data;
+
+        const configBody = document.getElementById('node-config-body');
+        document.getElementById('node-config-title').textContent = `Configurar ${getNodeTypeName(nodeType)}`;
+
+        // Limpar o corpo do modal
+        configBody.innerHTML = '';
+
+        // Criar formulário de configuração com base no tipo de nó
+        switch (nodeType) {
+            case 'welcome':
+                configBody.innerHTML = `
+                    <div class="form-group">
+                        <label for="welcome-message">Mensagem de boas-vindas:</label>
+                        <input type="text" id="welcome-message" class="form-control" value="${nodeData.message || ''}">
+                    </div>
+                `;
+                break;
+
+            case 'audio':
+                configBody.innerHTML = `
+                    <div class="form-group">
+                        <label for="audio-file">Selecione o arquivo de áudio:</label>
+                        <select id="audio-file" class="form-control">
+                            <option value="">Selecione um áudio</option>
+                        </select>
+                    </div>
+                `;
+                // Carregar lista de áudios disponíveis
+                loadAudioList('audio-file', nodeData.file);
+                break;
+
+            case 'dtmf':
+                configBody.innerHTML = `
+                    <div class="form-group">
+                        <label for="dtmf-prompt">Mensagem do dtmf:</label>
+                        <input type="text" id="dtmf-prompt" class="form-control" value="${nodeData.prompt || 'Digite uma opção'}">
+                    </div>
+                    <div class="form-group">
+                        <label for="dtmf-timeout">Timeout (segundos):</label>
+                        <input type="number" id="dtmf-timeout" class="form-control" min="1" max="30" value="${nodeData.timeout || '5'}">
+                    </div>
+                    <div class="form-group">
+                        <label for="dtmf-audio">Áudio do dtmf:</label>
+                        <select id="dtmf-audio" class="form-control"> 
+                            <option value="">Selecione um áudio</option>
+                        </select>
+                    </div>
+                       <div class="form-group">
+                        <label for="dtmf-digit">Digito</label>
+                        <input type="text" id="dtmf-digit" class="form-control" value="${nodeData.digit || ''}"/>
+
+                    </div>
+                    <h5 class="mt-4">Opções de Saída</h5>
+                    <div class="form-group">
+                        <label for="output-1-label">Rótulo para Saída 1:</label>
+                        <input type="text" id="output-1-label" class="form-control" value="${nodeData.output1Label || 'Opção 1'}">
+                    </div>
+                    <div class="form-group">
+                        <label for="output-2-label">Rótulo para Saída 2:</label>
+                        <input type="text" id="output-2-label" class="form-control" value="${nodeData.output2Label || 'Opção 2'}">
+                    </div>
+                `;
+                console.log(nodeData);
+                // Carregar lista de áudios disponíveis
+                loadAudioList('dtmf-audio', nodeData.audio);
+                break;
+
+            case 'collect':
+                configBody.innerHTML = `
+                    <div class="form-group">
+                        <label for="collect-type">Tipo de coleta:</label>
+                        <select id="collect-type" class="form-control">
+                            <option value="digits" ${nodeData.collectType === 'digits' ? 'selected' : ''}>Dígitos</option>
+                            <option value="voice" ${nodeData.collectType === 'voice' ? 'selected' : ''}>Voz</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="max-digits">Máximo de dígitos:</label>
+                        <input type="number" id="max-digits" class="form-control" min="1" max="20" value="${nodeData.maxDigits || '5'}">
+                    </div>
+                    <div class="form-group">
+                        <label for="collect-timeout">Timeout (segundos):</label>
+                        <input type="number" id="collect-timeout" class="form-control" min="1" max="30" value="${nodeData.timeout || '5'}">
+                    </div>
+                    <div class="form-group">
+                        <label for="audio-prompt">Áudio de instrução:</label>
+                        <select id="audio-prompt" class="form-control">
+                            <option value="">Selecione um áudio</option>
+                        </select>
+                    </div>
+                `;
+                // Carregar lista de áudios disponíveis
+                loadAudioList('audio-prompt', nodeData.audioPrompt);
+                break;
+
+            case 'condition':
+                configBody.innerHTML = `
+                    <div class="form-group">
+                        <label for="condition-type">Tipo de condição:</label>
+                        <select id="condition-type" class="form-control">
+                            <option value="equal" ${nodeData.conditionType === 'equal' ? 'selected' : ''}>Igual a</option>
+                            <option value="not_equal" ${nodeData.conditionType === 'not_equal' ? 'selected' : ''}>Diferente de</option>
+                            <option value="greater" ${nodeData.conditionType === 'greater' ? 'selected' : ''}>Maior que</option>
+                            <option value="less" ${nodeData.conditionType === 'less' ? 'selected' : ''}>Menor que</option>
+                            <option value="contains" ${nodeData.conditionType === 'contains' ? 'selected' : ''}>Contém</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="comparison-value">Valor para comparação:</label>
+                        <input type="text" id="comparison-value" class="form-control" value="${nodeData.comparisonValue || '1'}">
+                    </div>
+                    <div class="form-group">
+                        <label for="source-type">Fonte de dados:</label>
+                        <select id="source-type" class="form-control">
+                            <option value="input" ${nodeData.sourceType === 'input' ? 'selected' : ''}>Valor digitado</option>
+                            <option value="queue_position" ${nodeData.sourceType === 'queue_position' ? 'selected' : ''}>Posição na fila</option>
+                            <option value="time" ${nodeData.sourceType === 'time' ? 'selected' : ''}>Horário atual</option>
+                            <option value="day" ${nodeData.sourceType === 'day' ? 'selected' : ''}>Dia da semana</option>
+                            <option value="custom" ${nodeData.sourceType === 'custom' ? 'selected' : ''}>Valor personalizado</option>
+                        </select>
+                    </div>
+                    <h5 class="mt-4">Rótulos de Saída</h5>
+                    <div class="form-group">
+                        <label for="true-label">Rótulo para Verdadeiro:</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-success text-white"><i class="fas fa-check-circle"></i></span>
+                            <input type="text" id="true-label" class="form-control" value="${nodeData.trueLabel || 'Verdadeiro'}">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="false-label">Rótulo para Falso:</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-danger text-white"><i class="fas fa-times-circle"></i></span>
+                            <input type="text" id="false-label" class="form-control" value="${nodeData.falseLabel || 'Falso'}">
+                        </div>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> As conexões de saída são coloridas para facilitar a identificação:<br>
+                        <span class="badge bg-success">Verde</span> para condição verdadeira<br>
+                        <span class="badge bg-danger">Vermelho</span> para condição falsa
+                    </div>
+                `;
+                break;
+
+            case 'transfer':
+                configBody.innerHTML = `
+                    <div class="form-group">
+                        <label for="transfer-group">Grupo de agentes:</label>
+                        <select id="transfer-group" class="form-control">
+                            <option value="">Selecione um grupo</option>
+                        </select>
+                    </div>
+                    <div class="form-group ">
+                        <label for="transfer-timeout">Timeout (segundos):</label>
+                        <input type="number" id="transfer-timeout" class="form-control" min="1" max="120" value="${nodeData.timeout || '60'}">
+                    </div>
+                    <div class="form-group ">
+                        <label for="transfer-audio">Áudio durante espera:</label>
+                        <select id="transfer-audio" class="form-control">
+                            <option value="">Selecione um áudio</option>
+                        </select>
+                    </div>
+                `;
+                // Carregar lista de grupos
+                loadGroupsList('transfer-group', nodeData.group);
+                // Carregar lista de áudios disponíveis
+                loadAudioList('transfer-audio', nodeData.audio);
+                break;
+
+            case 'request':
+                configBody.innerHTML = `
+                    <div class="form-group">
+                        <label for="request-url">URL da requisição:</label>
+                        <input type="text" id="request-url" class="form-control" placeholder="https://exemplo.com/api" value="${nodeData.url || ''}">
+                        <small class="form-text text-muted">Use %input% para inserir valores capturados</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="request-method">Método:</label>
+                        <select id="request-method" class="form-control">
+                            <option value="get" ${nodeData.method === 'get' ? 'selected' : ''}>GET</option>
+                            <option value="post" ${nodeData.method === 'post' ? 'selected' : ''}>POST</option>
+                        </select>
+                    </div>
+                    <div class="form-group ">
+                        <label for="request-params">Parâmetros (opcional):</label>
+                        <input type="text" id="request-params" class="form-control" placeholder="param1=valor1&param2=valor2" value="${nodeData.params || ''}">
+                        <small class="form-text text-muted">Para POST, informe JSON ou parâmetros no formato URL</small>
+                    </div>
+                    <div class="form-group ">
+                        <label for="request-timeout">Timeout (segundos):</label>
+                        <input type="number" id="request-timeout" class="form-control" min="1" max="30" value="${nodeData.timeout || '5'}">
+                    </div>
+                    <div class="form-group">
+                        <label for="request-variable">Salvar resposta na variável (opcional):</label>
+                        <input type="text" id="request-variable" class="form-control" placeholder="Nome da variável" value="${nodeData.variable || ''}">
+                    </div>
+                `;
+                break;
+
+            case 'hangup':
+                configBody.innerHTML = `
+                    <div class="form-group">
+                        <label for="hangup-audio">Áudio final (opcional):</label>
+                        <select id="hangup-audio" class="form-control">
+                            <option value="">Selecione um áudio</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="hangup-delay">Atraso antes de desligar (segundos):</label>
+                        <input type="number" id="hangup-delay" class="form-control" min="0" max="10" value="${nodeData.delay || '1'}">
+                    </div>
+                `;
+                // Carregar lista de áudios disponíveis
+                loadAudioList('hangup-audio', nodeData.audio);
+                break;
+        }
+
+        // Mostrar o modal
+        new bootstrap.Modal(document.getElementById('modal-configure-node')).show();
+    }
+
+    // Salvar configuração do nó
+    function saveNodeConfiguration(nodeId) {
+        const node = editor.getNodeFromId(nodeId);
+        const nodeType = node.name;
+        const nodeData = {};
+
+        // Coletar dados baseados no tipo de nó
+        switch (nodeType) {
+            case 'welcome':
+                nodeData.message = document.getElementById('welcome-message').value;
+                break;
+
+            case 'audio':
+                nodeData.file = document.getElementById('audio-file').value;
+                break;
+
+            case 'dtmf':
+                nodeData.prompt = document.getElementById('dtmf-prompt').value;
+                nodeData.timeout = document.getElementById('dtmf-timeout').value;
+                nodeData.audio = document.getElementById('dtmf-audio').value;
+                nodeData.digit = document.getElementById('dtmf-digit').value;
+                nodeData.output1Label = document.getElementById('output-1-label').value;
+                nodeData.output2Label = document.getElementById('output-2-label').value;
+                break;
+
+            case 'collect':
+                nodeData.collectType = document.getElementById('collect-type').value;
+                nodeData.maxDigits = document.getElementById('max-digits').value;
+                nodeData.timeout = document.getElementById('collect-timeout').value;
+                nodeData.audioPrompt = document.getElementById('audio-prompt').value;
+                break;
+
+            case 'condition':
+                nodeData.conditionType = document.getElementById('condition-type').value;
+                nodeData.comparisonValue = document.getElementById('comparison-value').value;
+                nodeData.sourceType = document.getElementById('source-type').value;
+                nodeData.trueLabel = document.getElementById('true-label').value;
+                nodeData.falseLabel = document.getElementById('false-label').value;
+                break;
+
+            case 'transfer':
+                nodeData.group = document.getElementById('transfer-group').value;
+                nodeData.timeout = document.getElementById('transfer-timeout').value;
+                nodeData.audio = document.getElementById('transfer-audio').value;
+                break;
+
+            case 'request':
+                nodeData.url = document.getElementById('request-url').value;
+                nodeData.method = document.getElementById('request-method').value;
+                nodeData.params = document.getElementById('request-params').value;
+                nodeData.timeout = document.getElementById('request-timeout').value;
+                nodeData.variable = document.getElementById('request-variable').value;
+                break;
+
+            case 'hangup':
+                nodeData.audio = document.getElementById('hangup-audio').value;
+                nodeData.delay = document.getElementById('hangup-delay').value;
+                break;
+        }
+
+        // Atualizar os dados do nó
+        editor.updateNodeDataFromId(nodeId, nodeData);
+
+        // Atualizar o HTML do nó para refletir os novos dados
+        updateNodeHTML(nodeId, nodeType, nodeData);
+    }
+
+    // Atualizar HTML do nó com base nos dados configurados
+    function updateNodeHTML(nodeId, nodeType, nodeData) {
+        let nodeHtml = '';
+
+        // Aplicar classes de cores aos outputs se for um nó do tipo condition
+        if (nodeType === 'condition') {
+            setTimeout(() => {
+                const nodeElement = document.getElementById(`node-${nodeId}`);
+                if (nodeElement) {
+                    const outputs = nodeElement.querySelectorAll('.output');
+                    if (outputs.length >= 2) {
+                        // Primeiro output (Verdadeiro) - verde
+                        outputs[0].classList.add('output-true');
+                        // Segundo output (Falso) - vermelho
+                        outputs[1].classList.add('output-false');
+                    }
+                }
+            }, 100); // Pequeno delay para garantir que os elementos foram renderizados
+        }
+        console.log(nodeType, nodeData)
+
+        switch (nodeType) {
+            case 'welcome':
+                nodeHtml = `<div class="title d-flex justify-content-between align-items-center">
+    <div class="text-start">Início</div>
+    <i class="fas fa-cog" onclick="showNodeConfiguration('${nodeId}')" style="cursor:pointer;"></i>
+</div>
+<div class="node-content">
+    <p>${nodeData.message || 'Ponto de entrada da URA'}</p>
+</div>
+
+`;
+                break;
+
+            case 'audio':
+                nodeHtml = `<div class="title d-flex justify-content-between align-items-center">
+    <div class="text-start">Áudio</div>
+    <i class="fas fa-cog" onclick="showNodeConfiguration('${nodeId}')" style="cursor:pointer;"></i>
+</div>
+                        <div class="node-content"><p>${nodeData.file || 'Nenhum áudio selecionado'}</p></div>`;
+                break;
+
+            case 'dtmf':
+                nodeHtml = `<div class="title d-flex justify-content-between align-items-center">
+    <div class="text-start">Teclado Numérico:</div>
+    <i class="fas fa-cog" onclick="showNodeConfiguration('${nodeId}')" style="cursor:pointer;"></i>
+</div>
+                        <div class="node-content">
+                          <p>${nodeData.prompt || 'Digite uma opção'}</p>
+                          ${nodeData.digit ? `<div class="small">Dígito:
+<span class="badge bg-primary">${nodeData.digit}</span>
+</div>` : ''}
+
+                        </div>`;
+                break;
+
+            case 'collect':
+                nodeHtml = `<div class="title d-flex justify-content-between align-items-center">
+    <div class="text-start">Coletar valor</div>
+    <i class="fas fa-cog" onclick="showNodeConfiguration('${nodeId}')" style="cursor:pointer;"></i>
+</div>
+                        <div class="node-content">
+                          <p>Tipo: ${nodeData.collectType === 'digits' ? 'Dígitos' : 'Voz'}</p>
+                          <small>Máx: ${nodeData.maxDigits || '5'} | Timeout: ${nodeData.timeout || '5'}s</small>
+                          ${nodeData.audioPrompt ? `<div class="mt-1 small">Áudio: ${nodeData.audioPrompt}</div>` : ''}
+                        </div>`;
+                break;
+
+            case 'condition':
+                const conditionTypeMap = {
+                    'equal': 'Igual a',
+                    'not_equal': 'Diferente de',
+                    'greater': 'Maior que',
+                    'less': 'Menor que',
+                    'contains': 'Contém'
+                };
+
+                const sourceTypeMap = {
+                    'input': 'Valor digitado',
+                    'queue_position': 'Posição na fila',
+                    'time': 'Horário atual',
+                    'day': 'Dia da semana',
+                    'custom': 'Valor personalizado'
+                };
+
+                nodeHtml = `<div class="title d-flex justify-content-between align-items-center">
+    <div class="text-start">Condição</div>
+    <i class="fas fa-cog" onclick="showNodeConfiguration('${nodeId}')" style="cursor:pointer;"></i>
+</div>
+                        <div class="node-content">
+                          <p>${sourceTypeMap[nodeData.sourceType] || 'Fonte'} ${conditionTypeMap[nodeData.conditionType] || 'é'} ${nodeData.comparisonValue || '1'}</p>
+                          <div class="d-flex justify-content-between ">
+                            <small><span class="badge bg-success">${nodeData.trueLabel || 'Verdadeiro'}</span></small>
+                            <small><span class="badge bg-danger">${nodeData.falseLabel || 'Falso'}</span></small>
+                          </div>
+                        </div>`;
+                break;
+
+            case 'transfer':
+                nodeHtml = `<div class="title d-flex justify-content-between align-items-center">
+    <div class="text-start">Transferência</div>
+    <i class="fas fa-cog" onclick="showNodeConfiguration('${nodeId}')" style="cursor:pointer;"></i>
+</div>
+                        <div class="node-content">
+                          <p>Grupo: ${nodeData.group || 'Nenhum grupo selecionado'}</p>
+                          <small>Timeout: ${nodeData.timeout || '60'}s</small>
+                          ${nodeData.audio ? `<div class="mt-1 small">Áudio: ${nodeData.audio}</div>` : ''}
+                        </div>`;
+                break;
+
+            case 'request':
+                nodeHtml = `<div class="title d-flex justify-content-between align-items-center">
+    <div class="text-start">Requisição</div>
+    <i class="fas fa-cog" onclick="showNodeConfiguration('${nodeId}')" style="cursor:pointer;"></i>
+</div>
+                        <div class="node-content">
+                          <p>${nodeData.method ? nodeData.method.toUpperCase() : 'GET'}: ${nodeData.url || 'URL não definida'}</p>
+                          ${nodeData.params ? `<div class="mt-1 small">Parâmetros: ${nodeData.params.length > 30 ? nodeData.params.substring(0, 30) + '...' : nodeData.params}</div>` : ''}
+                          <small>Timeout: ${nodeData.timeout || '5'}s</small>
+                          ${nodeData.variable ? `<div class="mt-1 small">Variável: ${nodeData.variable}</div>` : ''}
+                        </div>`;
+                break;
+
+            case 'hangup':
+                nodeHtml = `<div class="title d-flex justify-content-between align-items-center">
+    <div class="text-start">Desligar a chamada</div>
+    <i class="fas fa-cog" onclick="showNodeConfiguration('${nodeId}')" style="cursor:pointer;"></i>
+</div>
+                        <div class="node-content">
+                          <p>Encerrar chamada</p>
+                          ${nodeData.audio ? `<div class="mt-1 small">Áudio final: ${nodeData.audio}</div>` : ''}
+                          <small>Atraso: ${nodeData.delay || '1'}s</small>
+                        </div>`;
+                break;
+        }
+
+        // ✅ Atualiza HTML no DOM manualmente
+        const nodeElement = document.getElementById(`node-${nodeId}`);
+        if (nodeElement) {
+            const contentElement = nodeElement.querySelector('.drawflow_content_node');
+            if (contentElement) {
+                contentElement.innerHTML = nodeHtml;
+            } else {
+                console.error('Elemento .drawflow_content_node não encontrado.');
+            }
+        } else {
+            console.error(`Nó com ID ${nodeId} não encontrado no DOM.`);
+        }
+    }
+
+
+    // Carregar lista de áudios disponíveis
+    async function loadAudioList(selectId, selectedValue) {
+        try {
+            const response = await fetch('/listAudios', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({authToken: new UserManager().getValue('token')})
+            });
+
+            const data = await response.json();
+            if (data.error) {
+                console.error('Erro ao listar áudios:', data.error);
+                return;
+            }
+
+            const selectElement = document.getElementById(selectId);
+            if (!selectElement) return;
+
+            // Limpar opções existentes (mantendo apenas a opção vazia)
+            selectElement.innerHTML = '<option value="">Selecione um áudio</option>';
+
+
+            // Adicionar áudios à lista
+            if (data.audios && data.audios.length > 0) {
+                data.audios.forEach(audio => {
+                    const option = document.createElement('option');
+                    option.value = audio;
+                    option.textContent = audio;
+                    if (audio === selectedValue) {
+                        option.selected = true;
+                    }
+                    selectElement.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Erro ao carregar lista de áudios:', error);
+        }
+    }
+
+    // Carregar lista de grupos de agentes
+    async function loadGroupsList(selectId, selectedValue) {
+        try {
+            const response = await fetch('listQueues', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    authToken: new UserManager().getValue('token')
+                })
+            });
+
+            const data = await response.json();
+            const selectElement = document.getElementById(selectId);
+            if (!selectElement) return;
+
+            // Limpar opções existentes (mantendo apenas a opção vazia)
+            selectElement.innerHTML = '<option value="">Selecione um grupo</option>';
+
+            // Adicionar grupos à lista
+            if (data && Object.keys(data).length > 0) {
+                Object.keys(data).forEach(group => {
+                    const option = document.createElement('option');
+                    option.value = group;
+                    option.textContent = group;
+                    if (group === selectedValue) {
+                        option.selected = true;
+                    }
+                    selectElement.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Erro ao carregar lista de grupos:', error);
+        }
+    }
+
+    // Obter nome amigável do tipo de nó
+    function getNodeTypeName(nodeType) {
+        const nodeTypeNames = {
+            'welcome': 'Início',
+            'audio': 'Áudio',
+            'dtmf': 'Teclado Numérico',
+            'collect': 'Coleta de Dados',
+            'condition': 'Condição',
+            'transfer': 'Transferência',
+            'request': 'Requisição',
+            'hangup': 'Desligar'
+        };
+
+        return nodeTypeNames[nodeType] || nodeType;
+    }
+
+    // Inicializar interface de discagem
+    function initDialingUI() {
+        // Variáveis e elementos do DOM
+        const definirTeclaButton = document.getElementById('definir-tecla');
+        const fecharModalButton = document.getElementById('fechar-modal');
+        const teclaAcaoSelect = document.getElementById('tecla-acao');
+        const teclaOptionsContainer = document.getElementById('tecla-options');
+        const additionalOptionsContainer = document.getElementById('additional-options');
+        let teclaSelecionada = 0;
+        let teclasDefinidas = {};
+
+        // Função para selecionar tecla
+        window.selectTecla = (tecla) => {
+            teclaSelecionada = tecla;
+            renderTeclaOptions();
+        };
+
+        // Função para renderizar opções de tecla
+        window.renderTeclaOptions = () => {
+            teclaOptionsContainer.innerHTML = '';
+            for (let i = 0; i <= 9; i++) {
+                const button = document.createElement('button');
+                button.className = `btn m-1 ${teclasDefinidas[i] ? 'btn-available' : 'btn-available'} ${teclaSelecionada === i ? 'btn-selected' : ''}`;
+                button.textContent = i;
+                button.dataset.tecla = i;
+                button.onclick = () => selectTecla(i);
+                teclaOptionsContainer.appendChild(button);
+            }
+        };
+
+        // Função para renderizar opções adicionais
+        window.renderAdditionalOptions = async () => {
+            additionalOptionsContainer.innerHTML = '';
+            const selectedAction = teclaAcaoSelect.value;
+            if (selectedAction === 'audio') {
+                const audioSelect = document.createElement('select');
+                audioSelect.style.marginTop = '10px';
+                audioSelect.className = 'form-control';
+                audioSelect.id = 'audio-select';
+
+                try {
+                    const response = await fetch('/listAudios', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({authToken: new UserManager().getValue('token')})
+                    });
+
+                    const data = await response.json();
+                    if (data.error) return;
+
+                    if (data.audios && data.audios.length > 0) {
+                        data.audios.forEach(audio => {
+                            const option = document.createElement('option');
+                            option.value = audio;
+                            option.textContent = audio;
+                            audioSelect.appendChild(option);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Erro ao carregar áudios:', error);
+                }
+
+                additionalOptionsContainer.appendChild(audioSelect);
+            } else if (selectedAction === 'encaminhar') {
+                const groupsSelect = document.createElement('select');
+                groupsSelect.style.marginTop = '10px';
+                groupsSelect.className = 'form-control';
+                groupsSelect.id = 'groups-select';
+
+                try {
+                    const response = await fetch('listQueues', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            authToken: new UserManager().getValue('token')
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (data) {
+                        Object.keys(data).forEach(group => {
+                            const option = document.createElement('option');
+                            option.value = group;
+                            option.textContent = group;
+                            groupsSelect.appendChild(option);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Erro ao carregar grupos:', error);
+                }
+
+                additionalOptionsContainer.appendChild(groupsSelect);
+            }
+        };
+
+        // Carregar configurações da campanha
+        window.getConfigCampaign = async () => {
+            try {
+                const response = await fetch('/getConfigCampaign', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({authToken: new UserManager().getValue('token')})
+                });
+
+                const data = await response.json();
+                if (data.error) return toast('Erro ao obter configuração da campanha', 'Erro', 5000, 'error');
+
+                await window.listAudios();
+                await window.listPhonesLists();
+
+                const config = data['config'];
+                document.getElementById('vSimultaneousCalls').textContent = config['simultaneousCalls'];
+                document.getElementById('simultaneousCalls').value = config['simultaneousCalls'];
+                document.getElementById('vwaitsig').textContent = config['awaitSignal'];
+                document.getElementById('awaitSignal').value = config['awaitSignal'];
+                document.getElementById('audio-principal').value = config['mainAudio'];
+                document.getElementById('listPhones').value = config['phonesList'];
+
+                // Atualizar ações das teclas
+                const teclasDefinidas = data['dtmfMap'];
+                const listaAcoesTeclas = document.getElementById('lista-acoes-teclas');
+                listaAcoesTeclas.innerHTML = '';
+                listaAcoesTeclas.style.border = 'none';
+
+                for (const [tecla, action] of Object.entries(teclasDefinidas)) {
+                    const li = document.createElement('li');
+                    li.style.border = 'none';
+                    li.className = 'list-group-item d-flex justify-content-between align-items-center bg-dark text-light';
+                    const actionText = document.createElement('span');
+                    let actionType = action.type;
+
+                    if (actionType === 'audio') {
+                        actionType = `<i class="fas fa-music"></i>`;
+                    } else if (actionType === 'close') {
+                        actionType = `<i class="fas fa-phone-slash"></i> Desligar`;
+                    } else if (actionType === 'transfer') {
+                        actionType = `<i class="fa-duotone fa-regular fa-user-headset"></i> Transferir ao grupo: (${action.group})`;
+                    }
+
+                    actionText.innerHTML = `Tecla <span class="badge bg-primary rounded-pill">${tecla}</span> : ${(action.type === 'close') ? actionType : actionType}${action.file ? ` ${action.file.includes('audio:') ? action.file.split('audio:')[1] : action.file}` : ''}`;
+
+                    const btnDelete = document.createElement('button');
+                    btnDelete.className = 'btn btn-danger btn-sm';
+                    btnDelete.innerHTML = '<i class="fas fa-trash"></i>';
+                    btnDelete.onclick = () => {
+                        delete teclasDefinidas[tecla];
+                        listaAcoesTeclas.removeChild(li);
+
+                        fetch('/deleteAction', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                tecla: tecla,
+                                authToken: new UserManager().getValue('token')
+                            })
+                        }).then(response => {
+                            if (response.ok) {
+                                toast('Ação da tecla excluída com sucesso', 'Sucesso', 5000, 'success');
+                                window.getConfigCampaign();
+                            } else {
+                                toast('Erro ao excluir ação da tecla', 'Erro', 5000, 'error');
+                            }
+                        });
+                    };
+
+                    li.appendChild(actionText);
+                    li.appendChild(btnDelete);
+                    listaAcoesTeclas.appendChild(li);
+                }
+
+                if (Object.keys(teclasDefinidas).length === 0) {
+                    listaAcoesTeclas.innerHTML = `
+                        <div class="alert alert-info" role="alert">
+                            <i class="fas fa-info-circle"></i> Nenhuma tecla foi definida ainda.
+                            Use o botão "Teclas" para configurar as ações das teclas.
+                        </div>`;
+                }
+
+                // Atualizar status da campanha
+                let startCampaign = document.getElementById('startCampaign');
+                let campaignStatusHeader = document.getElementById('campaignStatusHeader');
+                if (data['running']) {
+                    campaignStatusHeader.innerHTML = `<span class="spinner-grow text-success" style="width: 1.5rem; height: 1.5rem;"></span> <span class="text-white">Campanha Ativa</span>`;
+                    startCampaign.className = 'btn btn-primary text-light';
+                    startCampaign.innerHTML = '<i class="fas fa-pause"></i> Pausar';
+                } else {
+                    campaignStatusHeader.innerHTML = `<span class="text-white"><i class="text-blue fa-sharp-duotone fa-regular fa-circle-pause"></i> Campanha Pausada</span>`;
+                    startCampaign.className = 'btn btn-success';
+                    startCampaign.innerHTML = '<i class="fas fa-play"></i> Iniciar';
+                }
+
+                // Atualizar estatísticas
+                updateCampaignStats();
+            } catch (error) {
+                console.error('Erro ao obter configuração da campanha:', error);
+            }
+        };
+
+        // Listar áudios disponíveis
+        window.listAudios = async () => {
+            try {
+                const response = await fetch('/listAudios', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({authToken: new UserManager().getValue('token')})
+                });
+
+                const data = await response.json();
+                if (data.error) return toast('Erro ao listar áudios', 'Erro', 5000, 'error');
+
+                const listSounds = document.getElementById('listSounds');
+                $('#listSounds').empty();
+                if (!data['audios']) return toast('Nenhum áudio encontrado', 'Info', 5000, 'info');
+
+                let availableSounds = data['audios'];
+                availableSounds.forEach(sound => {
+                    const li = document.createElement('li');
+                    li.style.border = 'none';
+                    li.className = 'list-group-item d-flex justify-content-between align-items-center bg-dark text-light';
+
+                    const soundName = document.createElement('span');
+                    soundName.textContent = sound;
+
+                    const btnPlay = document.createElement('button');
+                    btnPlay.className = 'btn btn-primary btn-sm mx-1';
+                    const icon = document.createElement('i');
+                    icon.className = 'fas fa-play';
+                    btnPlay.appendChild(icon);
+                    btnPlay.onclick = () => {
+                        if (isPlaying) {
+                            audio.pause();
+                            isPlaying = false;
+                            icon.className = 'fas fa-play';
+                            return;
+                        } else {
+                            isPlaying = true;
+                        }
+                        audio = new Audio(`getSound?token=${new UserManager().getValue('token')}&sound=${sound}`);
+                        audio.play();
+                        icon.className = 'fas fa-stop';
+                        audio.onended = () => {
+                            icon.className = 'fas fa-play';
+                            isPlaying = false;
+                        };
+                    };
+
+                    const btnDelete = document.createElement('button');
+                    btnDelete.className = 'btn btn-danger btn-sm';
+                    btnDelete.innerHTML = '<i class="fas fa-trash"></i>';
+                    btnDelete.onclick = () => {
+                        fetch(`/deleteSound`, {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({authToken: new UserManager().getValue('token'), sound: sound})
+                        }).then(response => {
+                            if (response.ok) {
+                                listSounds.removeChild(li);
+                                toast('Áudio excluído com sucesso!', 'Sucesso', 3000, 'danger');
+                                window.listAudios();
+                            } else {
+                                toast('Erro ao excluir o áudio.', 'Erro', 3000, 'error');
+                            }
+                        });
+                    };
+
+                    const endButtons = document.createElement('div');
+                    endButtons.className = 'd-flex';
+                    endButtons.appendChild(btnPlay);
+                    endButtons.appendChild(btnDelete);
+
+                    li.appendChild(soundName);
+                    li.appendChild(endButtons);
+                    listSounds.appendChild(li);
+                });
+
+                $('#audio-principal').empty();
+                availableSounds.forEach(sound => {
+                    $('#audio-principal').append(`<option value="${sound}">${sound}</option>`);
+                });
+            } catch (error) {
+                console.error('Erro ao listar áudios:', error);
+            }
+        };
+
+        // Listar listas de telefones
+        window.listPhonesLists = async () => {
+            try {
+                const response = await fetch('/listPhonesLists', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({authToken: new UserManager().getValue('token')})
+                });
+
+                const data = await response.json();
+                if (data.error) return toast('Erro ao listar listas de telefones', 'Erro', 5000, 'error');
+
+                const listPhones = document.getElementById('listPhones');
+                $('#listPhones').empty();
+                if (!data['lists']) return toast('Nenhuma lista de telefones encontrada', 'Info', 5000, 'info');
+
+                let availableLists = data['lists'];
+                for (let i = 0; i < availableLists.length; i++) {
+                    const list = availableLists[i];
+                    const option = document.createElement('option');
+                    option.textContent = list;
+                    listPhones.appendChild(option);
+                }
+            } catch (error) {
+                console.error('Erro ao listar telefones:', error);
+            }
+        };
+
+        // Atualizar estatísticas da campanha
+        async function updateCampaignStats() {
+            return false;
+            try {
+                const response = await fetch('/getCampaignStats', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({authToken: new UserManager().getValue('token')})
+                });
+
+                const data = await response.json();
+                if (data.error) return;
+
+                document.getElementById('remaignsCalls').textContent = data.remaining || '0';
+                document.getElementById('callsFeitas').textContent = data.solved || '0';
+                document.getElementById('currentsCalls').textContent = data.actives || '0';
+                document.getElementById('refers').textContent = data.captured || '0';
+
+                // Agendar próxima atualização
+                setTimeout(updateCampaignStats, 5000);
+            } catch (error) {
+                console.error('Erro ao atualizar estatísticas:', error);
+                setTimeout(updateCampaignStats, 10000); // Tentar novamente após erro
+            }
+        }
+
+        // Event Listeners para a UI de discagem
+        if (definirTeclaButton) {
+            definirTeclaButton.addEventListener('click', () => {
+                $('#modal-definir-tecla').modal('show');
+                renderTeclaOptions();
+            });
+        }
+
+        if (fecharModalButton) {
+            fecharModalButton.addEventListener('click', () => {
+                $('#modal-definir-tecla').modal('hide');
+                window.listPhonesLists();
+                window.getConfigCampaign();
+            });
+        }
+
+        if (teclaAcaoSelect) {
+            teclaAcaoSelect.addEventListener('change', () => renderAdditionalOptions());
+        }
+
+        // Configurar evento para salvar ação da tecla
+        document.getElementById('salvar-tecla-acao').addEventListener('click', async () => {
+            const selectedAction = teclaAcaoSelect.value;
+            const selectedTecla = teclaSelecionada;
+            const additionalOptions = additionalOptionsContainer.children;
+            let action = {type: selectedAction};
+
+            if (selectedAction === 'audio') {
+                action.file = additionalOptions[0].value;
+            } else if (selectedAction === 'encaminhar') {
+                action.group = additionalOptions[0].value;
+            }
+
+            teclasDefinidas[selectedTecla] = action;
+
+            try {
+                const response = await fetch('/setAction', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        authToken: new UserManager().getValue('token'),
+                        tecla: selectedTecla,
+                        action: action
+                    })
+                });
+
+                const data = await response.json();
+                if (data.error) return toast('Erro ao definir ação da tecla', 'Erro', 5000, 'error');
+
+                toast('Ação da tecla definida com sucesso', 'Sucesso', 5000, 'success');
+                $('#modal-definir-tecla').modal('hide');
+                await window.getConfigCampaign();
+            } catch (error) {
+                console.error('Erro ao salvar ação da tecla:', error);
+                toast('Erro ao definir ação da tecla', 'Erro', 5000, 'error');
+            }
+        });
+
+        // Iniciar/Pausar campanha
+        document.getElementById('startCampaign').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/startCampaign', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({authToken: new UserManager().getValue('token')})
+                });
+
+                const data = await response.json();
+                if (data.error) return toast('Erro ao iniciar a campanha', 'Erro', 5000, 'error');
+
+                let startCampaign = document.getElementById('startCampaign');
+                if (startCampaign.innerText.includes('Iniciar')) {
+                    toast('Campanha iniciada', 'Processo iniciado', 5000, 'success');
+                } else if (startCampaign.innerText.includes('Pausar')) {
+                    toast('Campanha pausada', 'Processo pausado', 5000, 'info');
+                }
+
+                await window.getConfigCampaign();
+            } catch (error) {
+                console.error('Erro ao iniciar/pausar campanha:', error);
+            }
+        });
+
+        // Reiniciar campanha
+        document.getElementById('resetCampaign').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/resetCampaign', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({authToken: new UserManager().getValue('token')})
+                });
+
+                const data = await response.json();
+                if (data.error) return toast('Erro ao reiniciar a campanha', 'Erro', 5000, 'error');
+
+                toast('Campanha reiniciada', 'Sucesso', 5000, 'success');
+                await window.getConfigCampaign();
+            } catch (error) {
+                console.error('Erro ao reiniciar campanha:', error);
+            }
+        });
+
+        // Definir áudio principal
+        document.getElementById('audio-principal').addEventListener('change', async () => {
+            try {
+                const response = await fetch('/setMainAudio', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        authToken: new UserManager().getValue('token'),
+                        audio: document.getElementById('audio-principal').value
+                    })
+                });
+
+                const data = await response.json();
+                if (data.error) return toast('Erro ao definir áudio principal', 'Erro', 5000, 'error');
+
+                toast('Áudio principal definido com sucesso', 'Sucesso', 5000, 'success');
+            } catch (error) {
+                console.error('Erro ao definir áudio principal:', error);
+            }
+        });
+
+        // Definir lista de telefones
+        document.getElementById('listPhones').addEventListener('change', async () => {
+            try {
+                const response = await fetch('/setPhonesList', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        authToken: new UserManager().getValue('token'),
+                        list: document.getElementById('listPhones').value
+                    })
+                });
+
+                const data = await response.json();
+                if (data.error) return toast('Erro ao definir lista de telefones', 'Erro', 5000, 'error');
+
+                toast('Lista de telefones definida com sucesso', 'Sucesso', 5000, 'success');
+            } catch (error) {
+                console.error('Erro ao definir lista de telefones:', error);
+            }
+        });
+
+        // Atualizar tempo de espera
+        document.getElementById('awaitSignal').addEventListener('change', () => {
+            document.getElementById('vwaitsig').textContent = document.getElementById('awaitSignal').value;
+
+            fetch('/setAwaitSignal', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    authToken: new UserManager().getValue('token'),
+                    awaitSignal: document.getElementById('awaitSignal').value
+                })
+            }).then(response => {
+                if (response.ok) {
+                    toast('Tempo máximo de espera definido com sucesso', 'Sucesso', 5000, 'success');
+                } else {
+                    toast('Erro ao definir tempo máximo de espera', 'Erro', 5000, 'error');
+                }
+            }).catch(error => {
+                console.error('Erro ao definir tempo de espera:', error);
+            });
+        });
+
+        document.getElementById('awaitSignal').addEventListener('input', () => {
+            document.getElementById('vwaitsig').textContent = document.getElementById('awaitSignal').value;
+        });
+
+        // Enviar arquivo de áudio
+        document.getElementById('audio-arquivo').addEventListener('change', async () => {
+            const file = document.getElementById('audio-arquivo').files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('audio', file);
+            formData.append('authToken', new UserManager().getValue('token'));
+
+            try {
+                const response = await fetch('/uploadSound', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (data.error) return toast('Erro ao enviar áudio', 'Erro', 5000, 'error');
+
+                toast('Áudio enviado com sucesso', 'Sucesso', 5000, 'success');
+                await window.listAudios();
+            } catch (error) {
+                console.error('Erro ao enviar áudio:', error);
+            }
+        });
+
+        // Excluir lista de telefones
+        document.getElementById('deleteList').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/deletePhonesList', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        authToken: new UserManager().getValue('token'),
+                        list: document.getElementById('listPhones').value
+                    })
+                });
+
+                const data = await response.json();
+                if (data.error) return toast('Erro ao excluir lista de telefones', 'Erro', 5000, 'error');
+
+                toast('Lista de telefones excluída com sucesso', 'Sucesso', 5000, 'success');
+                await window.listPhonesLists();
+                await window.getConfigCampaign();
+            } catch (error) {
+                console.error('Erro ao excluir lista:', error);
+            }
+        });
+
+        // Enviar lista de telefones
+        document.getElementById('phoneUpload').addEventListener('change', async () => {
+            const file = document.getElementById('phoneUpload').files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('phonesList', file);
+            formData.append('authToken', new UserManager().getValue('token'));
+
+            try {
+                const response = await fetch('/uploadPhonesList', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (data.error) return toast('Erro ao enviar lista de telefones', 'Erro', 5000, 'error');
+
+                toast('Lista de telefones enviada com sucesso', 'Sucesso', 5000, 'success');
+                await window.listPhonesLists();
+                await window.getConfigCampaign();
+            } catch (error) {
+                console.error('Erro ao enviar lista de telefones:', error);
+            }
+        });
+
+        // Ajustar chamadas simultâneas
+        window.adjustSimultaneousCalls = (increment) => {
+            const simultaneousCalls = document.getElementById('simultaneousCalls');
+            const newValue = parseInt(simultaneousCalls.value) + increment;
+
+            if (newValue >= parseInt(simultaneousCalls.min) && newValue <= parseInt(simultaneousCalls.max)) {
+                simultaneousCalls.value = newValue;
+                document.getElementById('vSimultaneousCalls').textContent = newValue;
+                simultaneousCalls.dispatchEvent(new Event('change'));
+            }
+        };
+
+        // Definir chamadas simultâneas
+        document.getElementById('simultaneousCalls').addEventListener('change', () => {
+            document.getElementById('vSimultaneousCalls').textContent = document.getElementById('simultaneousCalls').value;
+
+            fetch('/setSimultaneousCalls', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    authToken: new UserManager().getValue('token'),
+                    simultaneousCalls: document.getElementById('simultaneousCalls').value
+                })
+            }).then(response => {
+                if (response.ok) {
+                    toast('Número de chamadas simultâneas definido com sucesso', 'Sucesso', 5000, 'success');
+                } else {
+                    toast('Erro ao definir número de chamadas simultâneas', 'Erro', 5000, 'error');
+                }
+            }).catch(error => {
+                console.error('Erro ao definir chamadas simultâneas:', error);
+            });
+        });
+
+        document.getElementById('simultaneousCalls').addEventListener('input', () => {
+            document.getElementById('vSimultaneousCalls').textContent = document.getElementById('simultaneousCalls').value;
+        });
+
+        // Inicializar dados
+        window.listAudios();
+        window.listPhonesLists();
+        window.getConfigCampaign();
+
+        let intervalUraWaiting;
+        intervalUraWaiting = setInterval(function () {
+            let navurastatus = document.getElementById('navura');
+            // checa se esta active
+            if (navurastatus.classList.contains('active')) {
+                loadUraData()
+                clearInterval(intervalUraWaiting);
+                sleep(1000).then(() => editor.zoom_out())
+                sleep(1000).then(() => editor.zoom_out())
+
+
+            }
+        }, 500)
+
+
+    }
+
+    $('#top-bar').html(`
+
+     <div class="card-header d-flex justify-content-between align-items-center">
+     <nav>
+  <div class="nav nav-tabs" id="nav-tab" role="tablist">
+    <a onclick="(() => {
+         document.getElementById('dialingTab').style.display = 'block';
+         document.getElementById('navura').classList.remove('active');
+
+           document.getElementById('uraTab').style.display = 'none';
+           document.getElementById('navdisk').classList.remove('active');
+           document.getElementById('navdisk').classList.add('active');
+
+
+    })()"
+
+     class="nav-item nav-link active" id="navdisk" data-toggle="tab" href="#dialingTab" role="tab"  aria-selected="true">Discagem</a>
+
+
+    <a onclick="( () => {
+           document.getElementById('dialingTab').style.display = 'none';
+           document.getElementById('navdisk').classList.remove('active');
+
+           document.getElementById('uraTab').style.display = 'block';
+           document.getElementById('navura').classList.remove('active');
+           document.getElementById('navura').classList.add('active');
+           document.getElementById('uraTab').classList.add('active');
+           document.getElementById('uraTab').classList.add('show');
+
+
+        })()"
+
+    class="nav-item nav-link" id="navura" data-toggle="tab" href="#uraTab" role="tab" aria-selected="false">URA</a>
+  </div>
+</nav>
+
+
+
+            </div>
+    `);
+
+</script>

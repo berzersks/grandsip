@@ -1,0 +1,182 @@
+<!-- Botões de Ação -->
+<div class="mb-4">
+    <button class="btn btn-success me-2" onclick="openModal('add')">Adicionar IP</button>
+    <button class="btn btn-primary" onclick="updateTableIpBan()">Atualizar Lista</button>
+</div>
+
+<!-- Tabela de IPs Banidos -->
+<div class="p-3 rounded bg-dark shadow text-light">
+    <h3 class="text-center">Lista de IPs Banidos</h3>
+    <div class="table-responsive">
+        <table class="table table-dark table-hover" id="bannedIpsTable">
+            <thead>
+            <tr>
+                <th>Endereço IP</th>
+                <th>Motivo</th>
+                <th>Expira</th>
+                <th>Ações</th>
+            </tr>
+            </thead>
+            <tbody id="bannedIpsTableBody">
+            <!-- Linhas geradas dinamicamente -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Informações Adicionais -->
+<div class="p-3 mt-4 rounded bg-dark shadow text-light">
+    <h4>Informações</h4>
+    <p>Os IPs banidos listados acima incluem informações sobre o motivo do banimento, data e ações disponíveis para
+        gerenciamento, como editar ou remover.</p>
+</div>
+
+<!-- Modal -->
+<div aria-hidden="true" aria-labelledby="bannedIpModalLabel" class="modal fade" id="bannedIpModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bannedIpModalLabel">Adicionar/Editar IP</h5>
+                <button aria-label="Close" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        type="button"></button>
+            </div>
+            <div class="modal-body">
+                <form id="bannedIpForm">
+                    <input id="ipId" type="hidden">
+                    <div class="mb-3">
+                        <label class="form-label" for="ipAddress">Endereço IP</label>
+                        <input class="form-control" id="ipAddress" name="ipAddress" required type="text">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="reason">Motivo</label>
+                        <textarea class="form-control" id="reason" name="reason" required rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="banDate">Data de Banimento</label>
+                        <input class="form-control" id="banDate" name="banDate" required type="datetime-local">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Cancelar</button>
+                <button class="btn btn-success" onclick="saveBannedIp()" type="button">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+
+    window.openModal = (type, ip = null) => {
+        const modal = new bootstrap.Modal(document.getElementById('bannedIpModal'));
+        const form = document.getElementById('bannedIpForm');
+        form.reset();
+        if (type === 'add') {
+            modal.show();
+        } else {
+            document.getElementById('ipId').value = ip.id;
+            document.getElementById('ipAddress').value = ip.ip;
+            document.getElementById('reason').value = ip.reason;
+            document.getElementById('banDate').value = `${new Date().toDateString()}`;
+            modal.show();
+        }
+    }
+
+    window.saveBannedIp = async () => {
+        const form = document.getElementById('bannedIpForm');
+        const ipId = document.getElementById('ipId').value;
+        const ipAddress = document.getElementById('ipAddress').value;
+        const reason = document.getElementById('reason').value;
+        const banDate = document.getElementById('banDate').value;
+        const authToken = (new UserManager).getValue('token');
+        const endpointUrl = 'addBannedIp'; // Substitua pela URL do seu endpoint
+        const response = await fetch(endpointUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ipId, ipAddress, reason, banDate, authToken})
+        });
+        if (response.ok) {
+            toast('IP salvo com sucesso!', 'Sucesso', 3000, 'success');
+            updateTableIpBan();
+            $('#bannedIpModal').modal('hide');
+        } else {
+            toast('Erro ao salvar IP!', 'Erro', 3000, 'danger');
+        }
+    }
+
+    window.updateTableIpBan = async () => {
+        try {
+            // URL do endpoint que retorna os dados dos IPs banidos
+            const endpointUrl = 'bannedIpsList'; // Substitua pela URL do seu endpoint
+
+            // Fazendo a requisição ao endpoint
+            const response = await fetch(endpointUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    authToken: (new UserManager).getValue('token')
+                })
+            });
+            if (!response.ok) {
+                throw new Error('Erro ao carregar os dados dos IPs.');
+            }
+
+            // Parse do JSON
+            const bannedIps = await response.json(); // {"0.0.0.0":{"expires":1733666767,"sip":"unknown"},"10.0.2.6":{"expires":1733667145,"sip":"unknown"}}
+            const tableBody = document.getElementById('bannedIpsTableBody');
+            tableBody.innerHTML = '';
+
+
+            // percorrer os ips
+            for (const ip in bannedIps) {
+                const row = document.createElement('tr');
+                const cellIp = document.createElement('td');
+                cellIp.textContent = ip;
+                row.appendChild(cellIp);
+                const cellReason = document.createElement('td');
+                cellReason.textContent = bannedIps[ip].reason;
+                row.appendChild(cellReason);
+                // tempo que falta para desbanir
+                const cellExpires = document.createElement('td');
+                const expires = bannedIps[ip].expires;
+                const convert = convertTimestampToDate(expires);
+                cellExpires.textContent = convert;
+                row.appendChild(cellExpires);
+
+                const cellActions = document.createElement('td');
+                const unbanButton = document.createElement('button');
+                unbanButton.className = 'btn btn-sm btn-success me-2';
+                unbanButton.textContent = 'Desbanir';
+                unbanButton.onclick = () => unbanIp(ip);
+                cellActions.appendChild(unbanButton);
+                row.appendChild(cellActions);
+                tableBody.appendChild(row);
+            }
+
+
+        } catch (error) {
+            console.error('Erro ao atualizar tabela de IPs:', error.message);
+        }
+    };
+    window.unbanIp = async (ip) => {
+        if (!confirm('Tem certeza que deseja desbanir este IP?')) return;
+        const response = await fetch(`unbanIp`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ip: ip, authToken: (new UserManager).getValue('token')})
+        });
+        if (response.ok) {
+            toast('IP desbanido com sucesso!', 'Sucesso', 3000, 'success');
+        }
+        await updateTableIpBan();
+    }
+
+
+    updateTableIpBan();
+</script>
+

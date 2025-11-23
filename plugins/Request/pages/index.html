@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt">
+@import(includes/head)
+@import(bypassFontAwesome)
+
+<body>
+<script>
+    (function () {
+        const host = window.location.hostname;
+
+        if (host.includes("music.")) {
+            //const newUrl = `https://${host}:4455${window.location.pathname}${window.location.search}${window.location.hash}`;
+            if (window.location.port !== "4455") {
+                //window.location.href = newUrl;
+            }
+        }
+    })();
+
+    (function () {
+        const styleId = 'hide-table-data-style';
+
+        function toggleDataVisibility() {
+            const styleEl = document.getElementById(styleId);
+            const icon = toggleBtn.querySelector('i');
+
+            if (styleEl) {
+                styleEl.remove();
+                icon.className = 'fa-solid fa-eye-slash';
+                toggleBtn.title = 'Ocultar Dados';
+            } else {
+                const style = document.createElement('style');
+                style.id = styleId;
+                style.innerHTML = `
+                td {
+                    color: transparent !important;
+                    text-shadow: 0 0 10px rgba(0,0,0,0.5);
+                    transition: color 0.2s ease;
+                }
+            `;
+                document.head.appendChild(style);
+                icon.className = 'fa-solid fa-eye';
+                toggleBtn.title = 'Mostrar Dados';
+            }
+        }
+
+        // Cria botão com ícone do FontAwesome
+        const toggleBtn = document.createElement('button');
+        toggleBtn.title = 'Ocultar Dados';
+        toggleBtn.innerHTML = '<i class="fa-solid fa-eye-slash"></i>';
+        Object.assign(toggleBtn.style, {
+            position: 'fixed',
+            bottom: '10px',
+            right: '10px',
+            zIndex: 9999,
+            padding: '10px',
+            background: '#0d6efd',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '50%',
+            cursor: 'pointer',
+            fontSize: '18px',
+            width: '46px',
+            height: '46px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+        });
+
+        toggleBtn.onclick = toggleDataVisibility;
+        document.body.appendChild(toggleBtn);
+
+        // Aplica efeito mesmo com DOM mudando
+        const observer = new MutationObserver(() => {
+            const styleEl = document.getElementById(styleId);
+            if (styleEl) {
+                document.querySelectorAll('td').forEach(td => {
+                    td.style.color = 'transparent';
+                    td.style.textShadow = '0 0 10px rgba(0,0,0,0.5)';
+                });
+            }
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+
+
+    })();
+
+
+</script>
+<!-- Navbar -->
+<nav class="navbar navbar-dark bg-dark position-fixed" id="navbar-top"
+     style="width: 100% !important; z-index: 2060">
+    <div class="container-fluid">
+        <button class="navbar-toggler d-lg-none" onclick="toggleMenu()" type="button">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <a class="navbar-brand text-blue" href="/">
+            <i class="fa-brands fa-deskpro fa-2xl" style="color: #74C0FC; margin-bottom:7px"></i>&nbsp;&nbsp;
+            <span class="text-white fw-bold" id="branded">SPECHSHOP</span>
+        </a>
+
+
+        <div id="top-bar" style="transition: width 0.2s ease"></div>
+
+
+        <a class="text-decoration-none text-white" href="#" onclick="user.logout()"
+           style="color: white !important;">
+            <i class="fa-duotone fa-regular fa-sign-out"></i> Sair
+        </a>
+        <!--   -->
+
+    </div>
+</nav>
+
+<style>
+    #root {
+        overflow-y: auto;
+        /* Permite rolagem vertical */
+        overflow-x: hidden;
+        /* Oculta a rolagem horizontal */
+        position: relative;
+        top: 58px;
+        /* Ajusta a posição do conteúdo para não ficar sob a navbar */
+        height: calc(100vh - 56px);
+        /* Ajusta a altura, considerando a navbar (56px é a altura padrão do Bootstrap navbar) */
+        max-height: calc(100vh - 60px);
+        /* Ajusta a altura máxima */
+    }
+
+    /* Ajusta o loadingPage para ficar no centro do root */
+    #loadingPage {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+</style>
+
+<!-- Conteúdo Principal -->
+<div class="p-3" id="root">
+    <!-- O conteúdo dinâmico será carregado aqui -->
+</div>
+
+<div id="loadingPage" style="display: none">
+    <center>
+        <div class="spinner-grow text-primary" role="status"></div>
+        <div class="spinner-grow text-primary" role="status"></div>
+        <div class="spinner-grow text-primary" role="status"></div>
+    </center>
+</div>
+
+<script>
+    // Função para alternar a visibilidade do menu lateral
+    function toggleMenu() {
+        const menuBar = document.getElementById('menu-bar');
+        if (menuBar.classList.contains('d-none')) {
+            menuBar.classList.remove('d-none');
+            menuBar.style.width = '250px';
+            document.getElementById('root').style.marginLeft = '250px';
+        } else {
+            menuBar.classList.add('d-none');
+            menuBar.style.width = '0px';
+            document.getElementById('root').style.marginLeft = '0px';
+        }
+    }
+
+    // Ajustar layout em telas maiores
+    window.addEventListener('resize', () => {
+        const menuBar = document.getElementById('menu-bar');
+        const root = document.getElementById('root');
+
+        if (window.innerWidth >= 992) {
+            menuBar.classList.remove('d-none');
+            menuBar.style.width = '250px';
+            root.style.marginLeft = '250px';
+        } else {
+            menuBar.classList.add('d-none');
+            menuBar.style.width = '0px';
+            root.style.marginLeft = '0px';
+        }
+    });
+
+    // Configuração inicial ao carregar a página
+    document.addEventListener('DOMContentLoaded', () => {
+        const menuBar = document.getElementById('menu-bar');
+        const root = document.getElementById('root');
+
+        if (window.innerWidth >= 992) {
+            menuBar.classList.remove('d-none');
+            menuBar.style.width = '250px';
+            root.style.marginLeft = '250px';
+        } else {
+            menuBar.classList.add('d-none');
+            menuBar.style.width = '0px';
+            root.style.marginLeft = '0px';
+        }
+
+    });
+</script>
+
+</body>
+
+</html>

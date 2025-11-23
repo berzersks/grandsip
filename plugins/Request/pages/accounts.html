@@ -1,0 +1,565 @@
+@import(accountsScript)
+
+<style>
+/* Estilos otimizados para dispositivos móveis - foco em urgência */
+@media (max-width: 768px) {
+    /* Layout geral mobile-first */
+    .container-fluid {
+        padding: 8px !important;
+    }
+
+    /* Botões de ação otimizados para mobile */
+    .mobile-action-button {
+        min-height: 48px !important;
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        margin-bottom: 8px !important;
+        width: 100% !important;
+        border-radius: 8px !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+    }
+
+    .mobile-action-button i {
+        font-size: 18px !important;
+        margin-right: 8px !important;
+    }
+
+    /* Modal otimizado para mobile */
+    .modal-dialog {
+        margin: 8px !important;
+        max-width: calc(100vw - 16px) !important;
+    }
+
+    .modal-dialog-mobile {
+        min-height: calc(100vh - 32px) !important;
+        margin: 16px 8px !important;
+        max-width: calc(100vw - 16px) !important;
+    }
+
+    .modal-content {
+        min-height: calc(100vh - 64px) !important;
+        border-radius: 12px !important;
+    }
+
+    .modal-header {
+        padding: 16px !important;
+        border-bottom: 2px solid #444 !important;
+    }
+
+    .modal-body {
+        padding: 16px !important;
+        font-size: 16px !important;
+    }
+
+    .modal-footer {
+        padding: 16px !important;
+        gap: 8px !important;
+    }
+
+    /* Inputs e selects maiores para mobile */
+    .form-control, .form-select {
+        min-height: 48px !important;
+        font-size: 16px !important;
+        border-radius: 8px !important;
+        padding: 12px 16px !important;
+    }
+
+    /* Labels maiores e mais visíveis */
+    .form-label {
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        color: #ffffff !important;
+        margin-bottom: 8px !important;
+    }
+
+    /* Botões do modal otimizados */
+    .modal-footer .btn {
+        min-height: 48px !important;
+        font-size: 16px !important;
+        font-weight: 600 !important;
+        flex: 1 !important;
+        border-radius: 8px !important;
+        padding: 12px 16px !important;
+    }
+
+    /* Tabela responsiva */
+    .table-responsive {
+        font-size: 14px !important;
+    }
+
+    .table th, .table td {
+        padding: 12px 8px !important;
+        vertical-align: middle !important;
+    }
+
+    /* Alert otimizado */
+    .alert {
+        font-size: 14px !important;
+        padding: 12px !important;
+        border-radius: 8px !important;
+    }
+
+    /* Progress bar */
+    .progress {
+        height: 32px !important;
+        border-radius: 16px !important;
+    }
+
+    .progress-bar {
+        font-size: 14px !important;
+        font-weight: 600 !important;
+    }
+
+    /* Títulos otimizados */
+    .modal-title {
+        font-size: 18px !important;
+        font-weight: 700 !important;
+        line-height: 1.3 !important;
+    }
+
+    h3 {
+        font-size: 20px !important;
+        font-weight: 700 !important;
+    }
+
+    /* Facilitar uso com uma mão */
+    .btn-close {
+        width: 48px !important;
+        height: 48px !important;
+        background-size: 20px !important;
+    }
+
+    /* Espaçamento otimizado */
+    .mb-3 {
+        margin-bottom: 16px !important;
+    }
+
+    .mb-4 {
+        margin-bottom: 20px !important;
+    }
+
+    /* Status text mais visível */
+    #setBulkBinaStatus, #setDirectMediaStatus, #setTrunkStatus {
+        font-size: 16px !important;
+        font-weight: 600 !important;
+        text-align: center !important;
+    }
+}
+
+/* Cores de urgência para ações críticas */
+@media (max-width: 768px) {
+    .btn-info.mobile-action-button {
+        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%) !important;
+        border: none !important;
+    }
+
+    .btn-warning.mobile-action-button {
+        background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%) !important;
+        border: none !important;
+        color: #000 !important;
+    }
+
+    .btn-success.mobile-action-button {
+        background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%) !important;
+        border: none !important;
+    }
+
+    .btn-light-green.mobile-action-button {
+        background: linear-gradient(135deg, #20c997 0%, #1aa379 100%) !important;
+        border: none !important;
+    }
+}
+
+
+/* Força scroll horizontal responsivo na tabela */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    border-radius: 0.5rem;
+}
+
+/* Melhorias visuais mobile para o grid de cards */
+@media (max-width: 768px) {
+    .mobile-accounts-grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: 1fr;
+        margin-top: 1rem;
+    }
+
+    .mobile-accounts-grid .card {
+        background-color: #1f1f1f;
+        border: 1px solid #444;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        color: #fff;
+        box-shadow: 0 0 5px #000;
+    }
+
+    .mobile-accounts-grid .card .row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+
+    .mobile-accounts-grid .card .label {
+        font-weight: bold;
+        color: #999;
+    }
+
+    .mobile-accounts-grid .card .value {
+        color: #fff;
+    }
+}
+.modal.show .modal-dialog {
+    margin-top: 50px !important;
+}
+</style>
+
+<!-- Botões de Ação -->
+<div class="mb-4 d-flex flex-wrap align-items-center">
+    <!-- Botão Adicionar Conta -->
+    <button class="btn btn-success me-2 d-flex align-items-center mobile-action-button" onclick="openModal('add')">
+        <i class="fa-duotone fa-user-plus"></i>
+        <span class="d-none d-sm-inline ms-2">Adicionar Conta</span>
+        <span class="d-sm-none">Nova Conta</span>
+    </button>
+
+    <!-- Botão Definir Tronco para Todos -->
+    <button class="btn btn-warning me-2 d-flex align-items-center mobile-action-button" onclick="openSetTrunkModal()">
+        <i class="fa-duotone fa-network-wired"></i>
+        <span class="d-none d-sm-inline ms-2">Definir Tronco para Todos</span>
+        <span class="d-sm-none">Tronco Massa</span>
+    </button>
+
+    <!-- Botão Alterar BINA em Massa -->
+    <button class="btn btn-info me-2 d-flex align-items-center mobile-action-button" onclick="openSetBinaModal()">
+        <i class="fa-duotone fa-phone"></i>
+        <span class="d-none d-sm-inline ms-2">Alterar BINA em Massa</span>
+        <span class="d-sm-none">BINA Massa</span>
+    </button>
+
+    <!-- Botão Alterar Direct Media em Massa -->
+    <button class="btn btn-light-green me-2 d-flex align-items-center mobile-action-button" onclick="openSetDirectMediaModal()">
+        <i class="fa-duotone fa-exchange-alt"></i>
+        <span class="d-none d-sm-inline ms-2">Direct Media em Massa</span>
+        <span class="d-sm-none">Direct Media</span>
+    </button>
+
+</div>
+
+<!-- Tabela de Contas SIP -->
+<div class="p-3 rounded bg-dark shadow text-light">
+    <h3 class="text-start d-flex align-items-center">
+        <i class="fa-duotone fa-users me-2 text-primary"></i>
+        Balanço total:&nbsp;<span id="totalBalance">0</span>
+    </h3>
+    <div class="table-purple">
+        <!-- Layout Desktop: Tabela Traditional -->
+        <div class="table-responsive">
+            <table class="table table-dark table-hover" id="accountsTable">
+                <thead>
+                <tr>
+                    <th class="text-white">#</th>
+                    <th class="text-white">Usuário</th>
+                    <th class="text-white">Saldo</th>
+                    <th class="text-white">BINA</th>
+                    <th class="text-white">Tráfego</th>
+                    <th class="text-white">Tipo</th>
+                    <th class="text-white">Tronco</th>
+                    <th class="text-white">Ações</th>
+                </tr>
+                </thead>
+                <tbody id="accountsTableBody">
+                <!-- Linhas geradas dinamicamente -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Layout Mobile: Cards -->
+        <div class="mobile-accounts-grid" id="accountsCardsContainer">
+            <!-- Cards gerados dinamicamente -->
+        </div>
+    </div>
+</div>
+
+<!-- Informações Adicionais -->
+<div class="p-3 mt-4 rounded bg-dark shadow text-light text-start" style="display: none">
+    <h4>Informações</h4>
+    <p>As contas SIP listadas acima incluem informações como o status (Ativo, Inativo, Erro), tipo de usuário
+        (Administrador, Revendedor, Usuário) e ações disponíveis para gerenciamento.</p>
+</div>
+
+
+<!-- Modal -->
+<div aria-hidden="true" aria-labelledby="accountModalLabel" class="modal fade" id="accountModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content bg-dark modal-xl text-light" style="max-height: 90% !important;">
+            <div class="modal-header">
+                <ul class="nav nav-underline">
+                    <li class="nav-item" onclick="setTab('generalTabs')">
+                        <a aria-current="page" class="nav-link text-white active" href="#" id="geralsip">Geral</a>
+                    </li>
+                    <li class="nav-item" onclick="setTab('extraTabs')">
+                        <a class="nav-link" href="#" id="extrasip">Extra</a>
+                    </li>
+                </ul>
+                <div class="btn-group" role="group" aria-label="Basic example">
+
+    <button class="btn btn-secondary" onclick="acessarUsuario()" type="button">
+        <i class="fa-duotone fa-user-gear"></i> Acessar
+    </button>
+    <button class="btn btn-primary" onclick="copiarAcesso()" type="button">
+        <i class="fa-duotone fa-copy"></i> Copiar Acesso
+    </button>
+    <button class="btn btn-success" onclick="saveAccount()" type="button">
+        <i class="fa-duotone fa-floppy-disk"></i> Salvar
+    </button>
+
+   
+
+</div>
+            </div>
+            <div class="modal-body">
+                <form id="accountForm">
+                    <input id="accountId" name="accountId" type="hidden">
+                    <div id="generalTabs" style="display: block">
+                        <div class="mb-3">
+                            <label class="form-label" for="username">Usuário</label>
+                            <input class="form-control" id="username" name="username" required type="text">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="phosts">IP's whitelist</label>
+                            <input class="form-control tagify" id="phosts" name="phosts" value="" separators="enter,comma" allow-duplicates="false" max="20" storage-key="tags-host" >
+                        </div>
+                        <div class="row mb-2">
+                           <div class="col-md-6">
+                                <label class="form-label" for="password">Senha</label>
+                            <input class="form-control" id="password" name="password" required type="text">
+                           </div>
+                            <div class="col-md-6">
+                                 <label class="form-label" for="prefix">Tech. prefix:</label>
+                                <input class="form-control" id="prefix" name="prefix"  type="tel" value="">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="balance">Saldo</label>
+                            <input class="form-control" id="balance" name="balance" required type="text" value="10">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="number">Número (bina)</label>
+                            <input class="form-control" id="number" name="number" required type="text" value="55114004xxxx">
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label" for="trunk">Tronco</label>
+                                <select class="form-select" id="trunk" name="trunk" required>
+                                    <option>Carregando...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="dmedia">Direct Media</label>
+                                <select class="form-select" id="dmedia" name="dmedia" required>
+                                    <option value="no">Não</option>
+                                    <option value="yes">Sim</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="lmc">Max simultâneas</label>
+                                <input value="10" type="number" class="form-control" id="lmc" name="lmc" min="1"
+                                       placeholder="Ex: 10">
+                            </div>
+                        </div>
+
+
+                        <div class="row g-2" id="callOptionsRow">
+                            <div class="col-md-3" id="recordSection">
+                                <label class="fw-bold text-primary" for="record">GRAVAR (desempenho <i
+                                        class="fa fa-down"></i> )</label>
+                                <div class="btn btn-light w-100" id="record">NÃO</div>
+                            </div>
+                            <div class="col-md-3" id="distributeCallsSection">
+                                <label class="fw-bold text-primary" for="distributeCalls">Distribuir Chamadas</label>
+                                <div class="btn btn-light w-100" id="distributeCalls">NÃO</div>
+                            </div>
+
+                            <div class="col-md-3" id="predictBadChannelSection">
+                                <label class="fw-bold text-primary" for="predictBadChannel">ring obrigatório</label>
+                                <div class="btn btn-light w-100" id="predictBadChannel">NÃO</div>
+                            </div>
+                            <div class="col-md-3" id="recordCallsSection">
+                                <label class="fw-bold text-primary" for="recordCalls">RANDOM TRUNK</label>
+                                <div class="btn btn-light w-100" id="recordCalls">NÃO</div>
+                            </div>
+                        </div>
+
+
+                    </div>
+                    <div id="extraTabs" style="display: none">
+                        <div class="mb-3">
+                            <label class="form-label" for="status">Bina Inteligente</label>
+                            <select class="form-select" id="status" name="status" required>
+                                <option value="ddd">DDD + BINA</option>
+                                <option value="active">Ativo</option>
+                                <option value="inactive">Inativo</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="number">Remover pref.</label>
+                            <input class="form-control" id="rprix" name="rprix" required type="text" value="">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="aprix">Add. pref.</label>
+                            <input class="form-control" id="aprix" name="aprix" type="text" value="">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="type">Tipo</label>
+                            <select class="form-select" id="type" name="type" required>
+                                <option value="user">Geral</option>
+                                <option value="automatic">Discadora</option>
+                                <option value="central">Central de Atendimento</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-1">
+                            <label class="form-label" for="observations">Observações</label>
+                            <textarea class="form-control" id="observations" name="observations" rows="4"></textarea>
+                        </div>
+
+
+                    </div>
+                </form>
+            </div>
+
+
+        </div>
+    </div>
+</div>
+
+<!-- Modal Alterar BINA em Massa -->
+<div aria-hidden="true" aria-labelledby="setBinaModalLabel" class="modal fade" id="setBinaModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header py-3">
+                <h5 class="modal-title fs-4" id="setBinaModalLabel">Alterar BINA para Todos</h5>
+                <button type="button" class="btn-close btn-close-white fs-3" data-bs-dismiss="modal" aria-label="Close" style="padding: 1rem;"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-info fs-6 p-3 mb-4" role="alert">
+                    <i class="fa-duotone fa-info-circle me-2 fs-5"></i>
+                    Esta ação irá alterar a BINA (número) de <code>todas</code> as contas existentes.
+                </div>
+                <div class="mb-4">
+                    <label class="form-label fs-5 fw-bold mb-3" for="bulkBina">Novo Número (BINA)</label>
+                    <input type="text" class="form-control form-control-lg fs-5" id="bulkBina" name="bulkBina"
+                           placeholder="Ex: 55114004xxxx" required style="padding: 1rem; min-height: 3.5rem;">
+                    <div class="form-text text-light fs-6 mt-2">
+                        Digite o número que será aplicado a todas as contas
+                    </div>
+                </div>
+                <div id="setBulkBinaProgress" style="display: none;">
+                    <div class="progress mb-3" style="height: 2rem;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated fs-6 d-flex align-items-center justify-content-center" role="progressbar"
+                             aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%" id="setBulkBinaProgressBar">
+                            0%
+                        </div>
+                    </div>
+                    <p class="text-center fs-5" id="setBulkBinaStatus">Preparando...</p>
+                </div>
+            </div>
+            <div class="modal-footer p-4 gap-3 d-flex justify-content-center">
+                <button type="button" class="btn btn-secondary btn-lg px-4 py-3 fs-5" data-bs-dismiss="modal" style="min-width: 120px;">Cancelar</button>
+                <button type="button" class="btn btn-info btn-lg px-4 py-3 fs-5" onclick="setBulkBina()" id="setBulkBinaButton" style="min-width: 150px;">
+                    <i class="fa-duotone fa-phone me-2"></i>
+                    Aplicar BINA
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Alterar Direct Media em Massa -->
+<div aria-hidden="true" aria-labelledby="setDirectMediaModalLabel" class="modal fade" id="setDirectMediaModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header py-3">
+                <h5 class="modal-title fs-4" id="setDirectMediaModalLabel">Direct Media - Todos</h5>
+                <button type="button" class="btn-close btn-close-white fs-3" data-bs-dismiss="modal" aria-label="Close" style="padding: 1rem;"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-primary fs-6 p-3 mb-4" role="alert">
+                    <i class="fa-duotone fa-info-circle me-2"></i>
+                    Esta ação irá alterar a configuração de Direct Media de <code>todas</code> as contas existentes.
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="bulkDirectMedia">Configuração do Direct Media</label>
+                    <select class="form-select" id="bulkDirectMedia" name="bulkDirectMedia" required>
+                        <option value="">Selecione uma opção...</option>
+                        <option value="yes">Sim - Ativar Direct Media</option>
+                        <option value="no">Não - Desativar Direct Media</option>
+                    </select>
+                    <div class="form-text text-light">
+                        O Direct Media permite comunicação direta entre endpoints, reduzindo latência mas pode afetar controle de tráfego
+                    </div>
+                </div>
+                <div id="setBulkDirectMediaProgress" style="display: none;">
+                    <div class="progress mb-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
+                             aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%" id="setBulkDirectMediaProgressBar">
+                            0%
+                        </div>
+                    </div>
+                    <p class="text-center" id="setBulkDirectMediaStatus">Preparando...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="setBulkDirectMedia()" id="setBulkDirectMediaButton">
+                    <i class="fa-duotone fa-exchange-alt me-2"></i>
+                    Aplicar Direct Media
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Definir Tronco para Todos -->
+<div aria-hidden="true" aria-labelledby="setTrunkModalLabel" class="modal fade" id="setTrunkModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header">
+                <h5 class="modal-title" id="setTrunkModalLabel">Definir Tronco para Todos os Usuários</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning" role="alert">
+                    <i class="fa-duotone fa-exclamation-triangle me-2"></i>
+                    Esta ação irá alterar o tronco de <code>todas</code> as contas existentes.
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="bulkTrunk">Selecione o Tronco</label>
+                    <select class="form-select" id="bulkTrunk" name="bulkTrunk" required>
+                        <option value="">Carregando...</option>
+                    </select>
+                </div>
+                <div id="setBulkTrunkProgress" style="display: none;">
+                    <div class="progress mb-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
+                             aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%" id="setBulkTrunkProgressBar">
+                            0%
+                        </div>
+                    </div>
+                    <p class="text-center" id="setBulkTrunkStatus">Preparando...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-warning" onclick="setBulkTrunk()" id="setBulkTrunkButton">
+                    <i class="fa-duotone fa-network-wired me-2"></i>
+                    Aplicar Tronco
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

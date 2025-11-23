@@ -1,0 +1,1127 @@
+@import(core-dash)
+
+<script>
+    // ==================== CONFIGURAÇÕES DA PÁGINA ====================
+    const CALLS_PER_CPU = 25;
+    const MAX_CHART_POINTS = 60;
+
+    let isResourcesPaused = false;
+    let isResourcesFullscreen = false;
+
+    // ==================== ESTRUTURA DE DADOS ====================
+    let systemData = {
+        cpuCores: 0,
+        cpuUsage: 0,
+        memoryUsage: 0,
+        networkUsage: 0,
+        currentCalls: 0,
+        callsPerCpu: 0,
+        processes: [],
+        cpuCoreUsage: [], // Array com uso individual de cada CPU
+        systemInfo: {
+            os: '',
+            uptime: '',
+            loadAverage: '',
+            temperature: '',
+            diskUsage: 0
+        }
+    };
+
+    const resourcesData = {
+        cpu: [],
+        memory: [],
+        network: [],
+        calls: []
+    };
+
+    // ==================== CONFIGURAÇÃO DOS GRÁFICOS ====================
+
+    // Configuração do gráfico de CPU (Pie Chart)
+    const cpuChartOptions = {
+        chart: {
+            id: 'cpu-pie-chart',
+            type: 'donut',
+            height: 350,
+            //background: '#161d31',
+            theme: 'dark',
+
+            animations: {
+                enabled: true,
+                easing: 'easeinout',
+                speed: 800,
+                animateGradually: {
+                    enabled: true,
+                    delay: 150
+                },
+                dynamicAnimation: {
+                    enabled: true,
+                    speed: 350
+                }
+            }
+        },
+        series: [0, 100], // [CPU Usado, CPU Livre]
+        labels: ['CPU Usado', 'CPU Livre'],
+        colors: ['#0dcaf0', '#28a745'], // Vermelho para "Usado", Azul para "Livre"
+        fill: {
+            type: 'gradient',
+            gradient: {
+                shade: 'dark',
+                type: 'vertical',
+                shadeIntensity: 0.6,
+                gradientToColors: ['#0dcaf0', '#28a745'], // Amarelo para "Usado", Verde para "Livre"
+                inverseColors: false,
+                opacityFrom: 1,
+                opacityTo: 0.8,
+                stops: [0, 90, 100]
+            }
+        },
+        stroke: {
+            width: 0
+        },
+        plotOptions: {
+            pie: {
+                donut: {
+                    size: '70%',
+                    stroke: {
+                        width: 0
+                    },
+                    labels: {
+                        show: true,
+                        name: {
+                            show: true,
+                            fontSize: '16px',
+                            fontWeight: 600,
+                            color: '#cfd6ee'
+                        },
+                        value: {
+                            show: true,
+                            fontSize: '24px',
+                            fontWeight: 'bold',
+                            color: '#00b1ff',
+                            formatter: function (val) {
+                                return val + '%';
+                            }
+                        },
+                        total: {
+                            show: false,
+                            label: 'CPU Total',
+                            fontSize: '14px',
+                            fontWeight: 600,
+                            color: '#cfd6ee',
+                            formatter: function (w) {
+                                const cpuUsed = w.globals.seriesTotals[0];
+                                return cpuUsed + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        legend: {
+            show: true,
+            position: 'bottom',
+            labels: {colors: '#cfd6ee'},
+            markers: {
+                width: 12,
+                height: 12
+            }
+        },
+        tooltip: {
+            theme: 'dark',
+            style: {
+                fontSize: '14px'
+            },
+            custom: function ({series, seriesIndex, dataPointIndex, w}) {
+                const value = series[seriesIndex];
+                const label = w.globals.labels[seriesIndex];
+                return `<div class="p-3" style="background: #161d31; border: 1px solid #2a335f; border-radius: 8px;">
+                    <div style="color: #00b1ff; font-weight: bold;">${label}</div>
+                    <div style="color: #cfd6ee;">${value}%</div>
+                </div>`;
+            }
+        }
+    };
+
+    // Configuração do gráfico de recursos (Line Chart)
+    const resourcesChartOptions = {
+        chart: {
+            id: 'resources-chart',
+            type: 'line',
+            height: 350,
+            //background: '#161d31',
+            theme: 'dark',
+            animations: {
+                enabled: true,
+                easing: 'linear',
+                dynamicAnimation: {speed: 900}
+            },
+            toolbar: {
+                show: true,
+                tools: {
+                    download: true,
+                    zoom: true,
+                    reset: true
+                }
+            }
+        },
+        series: [
+            {
+                name: 'Memória (MB)',
+                data: [],
+                yAxisIndex: 0  // Eixo esquerdo para Memória
+            },
+            {
+                name: 'Rede (MB)',
+                data: [],
+                yAxisIndex: 1  // Eixo direito para Rede
+            }
+        ],
+        colors: [
+            '#bd93f9', // Roxo para Memória (cor de 'variável' no css)
+            '#00b1ff'  // Azul principal para Rede
+        ],
+        stroke: {
+            curve: 'smooth',
+            width: [3, 3],
+            lineCap: 'round'
+        },
+        fill: {
+            type: 'gradient',
+            gradient: {
+                gradientToColors: [
+                    '#00d2ff', // Azul claro para Memória
+                    '#00ff70'  // Verde vibrante para Rede
+                ],
+                shade: 'light',
+                opacityFrom: 1,
+                opacityTo: 1,
+                stops: [0, 50, 100]
+            }
+        },
+
+        grid: {
+            borderColor: '#2a335f',
+            row: {
+                colors: ['#283046', 'transparent'], // Alternância de cores para linhas
+                opacity: 1
+            }
+        },
+        markers: {
+            size: [4, 4],
+            colors: ['#bd93f9', '#00b1ff'],
+            strokeColors: '#283046',
+            strokeWidth: 2,
+            hover: {
+                size: 8,
+                sizeOffset: 2
+            }
+        },
+
+        xaxis: {
+            type: 'datetime',
+            labels: {
+                style: {colors: '#cfd6ee'}, // Texto padrão da paleta
+                format: 'HH:mm:ss'
+            },
+            axisBorder: {
+                color: '#2a335f'
+            },
+            axisTicks: {
+                color: '#2a335f'
+            }
+        },
+        yaxis: [
+            {
+                // Eixo Y esquerdo para Memória (MB)
+                seriesName: ['Memória (MB)'],
+                min: 0,
+                labels: {
+                    style: {colors: '#bd93f9'}, // Roxo
+                    formatter: function (val) {
+                        if (val >= 1024) {
+                            return (val / 1024).toFixed(1) + ' GB';
+                        } else if (val >= 1) {
+                            return val.toFixed(1) + ' MB';
+                        } else {
+                            return (val * 1024).toFixed(0) + ' KB';
+                        }
+                    }
+                },
+                title: {
+                    text: 'Memória',
+                    style: {color: '#bd93f9'} // Roxo
+                },
+                axisBorder: {
+                    color: '#2a335f'
+                }
+            },
+            {
+                // Eixo Y direito para Rede (MB)
+                seriesName: ['Rede (MB)'],
+                opposite: true,
+                min: 0,
+                labels: {
+                    style: {colors: '#00b1ff'}, // Azul Principal
+                    formatter: function (val) { // O valor (val) está em KB
+                        if (val >= 1024 * 1024) { // Converte para GB/s
+                            return (val / (1024 * 1024)).toFixed(2) + ' GB/s';
+                        }
+                        if (val >= 1024) { // Converte para MB/s
+                            return (val / 1024).toFixed(2) + ' MB/s';
+                        }
+                        return val.toFixed(0) + ' KB/s'; // Mantém em KB/s
+                    }
+                },
+                title: {
+                    text: 'Rede',
+                    style: {color: '#00b1ff'} // Azul Principal
+                },
+                axisBorder: {
+                    color: '#2a335f'
+                }
+            }
+        ],
+        legend: {
+            show: true,
+            position: 'top',
+            labels: {colors: '#cfd6ee'}, // Texto padrão da paleta
+            markers: {
+                width: 12,
+                height: 12,
+                radius: 6,
+                fillColors: ['#bd93f9', '#00b1ff']
+            }
+        },
+        grid: {
+            show: true,
+            borderColor: '#2a335f', // Borda da paleta
+            strokeDashArray: 4,
+            position: 'back',
+            xaxis: {
+                lines: {show: true}
+            },
+            yaxis: {
+                lines: {show: true}
+            }
+        },
+        tooltip: {
+            theme: 'dark',
+            shared: true,
+            intersect: false,
+            custom: function ({series, seriesIndex, dataPointIndex, w}) {
+                const timestamp = w.globals.seriesX[0][dataPointIndex];
+                const date = new Date(timestamp);
+                const time = date.toLocaleTimeString('pt-BR');
+
+                let html = `<div class="p-3" style="background: rgba(22, 29, 49, 0.9); border: 1px solid rgba(42, 51, 95, 0.5); box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5); border-radius: 12px;">`;
+                html += `<div class="fw-bold mb-2" style="color: rgba(0, 177, 255, 0.9);">${time}</div>`;
+
+                series.forEach((seriesData, index) => {
+                    const value = seriesData[dataPointIndex];
+                    const seriesName = w.globals.seriesNames[index];
+                    const color = w.globals.colors[index];
+
+                    let formattedValue = '';
+                    if (seriesName.includes('CPU')) {
+                        formattedValue = value.toFixed(1) + '%';
+                    } else if (seriesName.includes('Memória')) {
+                        if (value >= 1024) {
+                            formattedValue = (value / 1024).toFixed(1) + ' GB';
+                        } else if (value >= 1) {
+                            formattedValue = value.toFixed(1) + ' MB';
+                        } else {
+                            formattedValue = (value * 1024).toFixed(0) + ' KB';
+                        }
+                    } else if (seriesName.includes('Rede')) {
+                        // O valor (value) está em KB
+                        if (value >= 1024 * 1024) { // Converte para GB/s
+                            formattedValue = (value / (1024 * 1024)).toFixed(2) + ' GB/s';
+                        } else if (value >= 1024) { // Converte para MB/s
+                            formattedValue = (value / 1024).toFixed(2) + ' MB/s';
+                        } else {
+                            formattedValue = value.toFixed(0) + ' KB/s'; // Mantém em KB/s
+                        }
+                    } else if (seriesName.includes('Chamadas')) {
+                        formattedValue = value.toFixed(0);
+                    } else {
+                        formattedValue = value;
+                    }
+
+                    html += `<div class="d-flex align-items-center mb-1">`;
+                    html += `<div style="width: 10px; height: 10px; background: ${color}; border-radius: 50%; margin-right: 8px; box-shadow: 0 0 8px ${color}40;"></div>`;
+                    html += `<span style="color: #cfd6ee;">${seriesName}: <strong style="color: #00b1ff;">${formattedValue}</strong></span>`;
+                    html += `</div>`;
+                });
+
+                html += `</div>`;
+                return html;
+            }
+        }
+    };
+
+    const cpuChart = new ApexCharts(document.querySelector("#cpuChart"), cpuChartOptions);
+    const resourcesChart = new ApexCharts(document.querySelector("#resourcesChart"), resourcesChartOptions);
+
+    cpuChart.render();
+    resourcesChart.render();
+
+    // ==================== INTEGRAÇÃO COM ROUTER GLOBAL ====================
+    function updateConnectionStatus() {
+        const statusElement = document.getElementById('connectionStatus');
+        if (!statusElement) return;
+
+        let statusClass = '';
+        let statusText = '';
+        let statusIcon = '';
+
+        // Verifica se o socketGlobal existe e está conectado
+        if (typeof socketGlobal !== 'undefined' && socketGlobal) {
+
+            if (socketGlobal.readyState === WebSocket.OPEN) {
+                statusClass = 'text-success';
+                statusText = 'Conectado';
+                statusIcon = 'fa-wifi';
+            } else if (socketGlobal.readyState === WebSocket.CONNECTING) {
+                statusClass = 'text-warning pulse-animation';
+                statusText = 'Conectando...';
+                statusIcon = 'fa-spinner fa-spin';
+            } else if (socketGlobal.readyState === WebSocket.CLOSED || socketGlobal.closed) {
+                statusClass = 'text-danger';
+                statusText = 'Desconectado';
+                statusIcon = 'fa-wifi-slash';
+            } else {
+                statusClass = 'text-secondary';
+                statusText = 'Erro';
+                statusIcon = 'fa-exclamation-triangle';
+            }
+        } else {
+            statusClass = 'text-secondary';
+            statusText = 'Inicializando...';
+            statusIcon = 'fa-clock';
+        }
+
+        statusElement.className = `${statusClass}`;
+        statusElement.innerHTML = `<i class="fas ${statusIcon} me-2"></i>${statusText}`;
+    }
+
+    // ==================== FUNÇÕES DE REQUISIÇÃO DE DADOS ====================
+    async function requestSystemCapacity() {
+        if (!isSocketConnected()) {
+            console.warn('Socket não conectado. Não é possível solicitar capacidade do sistema.');
+            return;
+        }
+
+        try {
+            const data = await sendRecByToken({
+                token: (new UserManager).getValue('token')
+            }, 'systemCapacity');
+
+            if (data) {
+                handleSystemCapacityData(data);
+            }
+        } catch (error) {
+            console.error('Erro ao solicitar capacidade do sistema:', error);
+        }
+    }
+
+    async function requestResourceMetrics() {
+        if (!isSocketConnected()) {
+            console.warn('Socket não conectado. Não é possível solicitar métricas de recursos.');
+            return;
+        }
+
+        try {
+            const data = await sendRecByToken({
+                token: (new UserManager).getValue('token')
+            }, 'resourceMetrics');
+
+            if (data) {
+                handleResourceMetricsData(data);
+            }
+        } catch (error) {
+            console.error('Erro ao solicitar métricas de recursos:', error);
+        }
+    }
+
+    async function requestProcessesList() {
+        if (!isSocketConnected()) {
+            console.warn('Socket não conectado. Não é possível solicitar lista de processos.');
+            return;
+        }
+
+        try {
+            const data = await sendRecByToken({
+                token: (new UserManager).getValue('token')
+            }, 'processesList');
+
+            if (data) {
+                handleProcessesData(data);
+            }
+        } catch (error) {
+            console.error('Erro ao solicitar lista de processos:', error);
+        }
+    }
+
+    async function requestSystemInfo() {
+        if (!isSocketConnected()) {
+            console.warn('Socket não conectado. Não é possível solicitar informações do sistema.');
+            return;
+        }
+
+        try {
+            const data = await sendRecByToken({
+                token: (new UserManager).getValue('token')
+            }, 'systemInfo');
+
+            if (data) {
+                handleSystemInfoData(data);
+            }
+        } catch (error) {
+            console.error('Erro ao solicitar informações do sistema:', error);
+        }
+    }
+
+    async function requestCpuCoresUsage() {
+        if (!isSocketConnected()) {
+            console.warn('Socket não conectado. Não é possível solicitar uso dos núcleos CPU.');
+            return;
+        }
+
+        try {
+            const data = await sendRecByToken({
+                token: (new UserManager).getValue('token')
+            }, 'cpuCoresUsage');
+
+            if (data) {
+                handleCpuCoresUsageData(data);
+            }
+        } catch (error) {
+            console.error('Erro ao solicitar uso dos núcleos CPU:', error);
+        }
+    }
+
+    // ==================== MESSAGE HANDLERS ====================
+    function handleSystemCapacityData(data) {
+        if (data.cpuCores !== undefined) {
+            systemData.cpuCores = data.cpuCores;
+        }
+        if (data.currentCalls !== undefined) {
+            systemData.currentCalls = data.currentCalls;
+        }
+        if (data.callsPerCpu !== undefined) {
+            systemData.callsPerCpu = data.callsPerCpu;
+        }
+        updateBasicInfo();
+    }
+
+    // Função para calcular RAM total dos processos críticos (manter para compatibilidade)
+    function calculateCriticalProcessesMemory() {
+        if (!systemData.processes || systemData.processes.length === 0) {
+            return {totalMB: 0, displayValue: '0 MB'};
+        }
+
+        let totalMemoryMB = 0;
+
+        // Lista de processos críticos que devem ser incluídos no cálculo
+        const criticalProcesses = [
+            'rtpw3.php',
+            'mediaServer.php',
+            'rtpServer.php',
+            'audio.php',
+            'runnerServer.php'
+        ];
+
+        systemData.processes.forEach(process => {
+            // Verifica se é um processo crítico
+            const isCritical = criticalProcesses.some(critical =>
+                process.name.toLowerCase().includes(critical.toLowerCase())
+            );
+
+            if (isCritical && process.memory && process.memory !== '-') {
+                let memoryInMB = 0;
+
+                if (typeof process.memory === 'string') {
+                    const memoryValue = parseFloat(process.memory);
+                    if (process.memory.toLowerCase().includes('gb')) {
+                        memoryInMB = memoryValue * 1024; // GB para MB
+                    } else if (process.memory.toLowerCase().includes('mb')) {
+                        memoryInMB = memoryValue; // Já está em MB
+                    } else if (process.memory.toLowerCase().includes('kb')) {
+                        memoryInMB = memoryValue / 1024; // KB para MB
+                    } else {
+                        memoryInMB = memoryValue; // Assume MB se não tiver unidade
+                    }
+                } else {
+                    memoryInMB = parseFloat(process.memory) || 0;
+                }
+
+                totalMemoryMB += memoryInMB;
+            }
+        });
+
+        // Formatar valor para exibição
+        let displayValue;
+        if (totalMemoryMB >= 1024) {
+            displayValue = (totalMemoryMB / 1024).toFixed(2) + ' GB';
+        } else {
+            displayValue = totalMemoryMB.toFixed(2) + ' MB';
+        }
+
+        return {totalMB: totalMemoryMB, displayValue: displayValue};
+    }
+
+    function handleResourceMetricsData(data) {
+        // Atualiza múltiplas métricas de uma vez - usa dados exatamente como enviados
+        if (data.cpu !== undefined) {
+            systemData.cpuUsage = data.cpu; // Mantém formato original
+            // Para o gráfico de pizza, extrai apenas o valor numérico (remove % se tiver)
+            const cpuNumeric = typeof data.cpu === 'string' ? parseFloat(data.cpu.replace('%', '')) : data.cpu;
+            updateCpuPieChart(cpuNumeric || 0);
+        }
+
+        // Usa memória total do sistema diretamente do backend
+        if (data.memory !== undefined) {
+            systemData.memoryUsage = data.memory; // Memória total do sistema
+
+            // Para o gráfico, converte para MB se necessário
+            let memoryInMB = 0;
+            if (typeof data.memory === 'string') {
+                const memoryValue = parseFloat(data.memory);
+                if (data.memory.toLowerCase().includes('gb')) {
+                    memoryInMB = memoryValue * 1024; // GB para MB
+                } else if (data.memory.toLowerCase().includes('mb')) {
+                    memoryInMB = memoryValue; // Já está em MB
+                } else if (data.memory.toLowerCase().includes('kb')) {
+                    memoryInMB = memoryValue / 1024; // KB para MB
+                } else {
+                    memoryInMB = memoryValue; // Assume MB se não tiver unidade
+                }
+            } else {
+                memoryInMB = data.memory;
+            }
+            addResourceDataPoint('memory', memoryInMB || 0);
+        }
+
+        if (data.network !== undefined) {
+            systemData.networkUsage = data.network; // Mantém formato original
+            // Para o gráfico, converte tudo para KB como unidade base
+            let networkInKB = 0;
+            if (typeof data.network === 'string') {
+                const networkValue = parseFloat(data.network);
+                if (data.network.toLowerCase().includes('gb')) {
+                    networkInKB = networkValue * 1024 * 1024; // GB para KB
+                } else if (data.network.toLowerCase().includes('mb')) {
+                    networkInKB = networkValue * 1024; // MB para KB
+                } else { // Assume KB para 'kb' ou sem unidade
+                    networkInKB = networkValue;
+                }
+            } else { // Se for um número, assume que já está em KB
+                networkInKB = data.network;
+            }
+            addResourceDataPoint('network', networkInKB || 0);
+        }
+        if (data.currentCalls !== undefined) {
+            systemData.currentCalls = parseInt(data.currentCalls) || 0;
+        }
+
+        updateBasicInfo();
+        updateResourcesChart();
+    }
+
+    function handleProcessesData(data) {
+        if (data.processes) {
+            systemData.processes = data.processes;
+            updateProcessesTable();
+            // Não precisa mais recalcular memória aqui - vem do sistema completo via resourceMetrics
+        }
+    }
+
+    function handleSystemInfoData(data) {
+        if (data.info) {
+            systemData.systemInfo = {...systemData.systemInfo, ...data.info};
+            updateSystemInfo();
+        }
+    }
+
+    function handleCpuCoresUsageData(data) {
+        if (data.coresUsage) {
+            systemData.cpuCoreUsage = data.coresUsage;
+            createCpuCards();
+        }
+    }
+
+    // ==================== EXTENSÃO DO ROUTER PARA MENSAGENS DE CAPACIDADE ====================
+    // Intercepta mensagens do router para capacidade do sistema
+
+
+    // ==================== UPDATE FUNCTIONS ====================
+    function updateBasicInfo() {
+        // Usa callsPerCpu se disponível, senão usa CALLS_PER_CPU padrão
+        const callsPerCpu = systemData.callsPerCpu || CALLS_PER_CPU;
+        const totalCapacity = systemData.cpuCores * callsPerCpu;
+        const availableCapacity = Math.max(0, totalCapacity - systemData.currentCalls);
+
+        document.getElementById('totalCpuCores').textContent = systemData.cpuCores;
+        document.getElementById('totalcr').textContent = systemData.callsPerCpu;
+        document.getElementById('maxCapacity').textContent = totalCapacity;
+
+        // Mostra dados exatamente como enviados do backend
+        document.getElementById('cpuUsage').textContent = systemData.cpuUsage || '0';
+        document.getElementById('memoryUsage').textContent = systemData.memoryUsage || '0';
+        document.getElementById('networkUsage').textContent = systemData.networkUsage || '0';
+
+        document.getElementById('totalSystemCapacity').textContent = totalCapacity;
+        document.getElementById('currentUsage').textContent = systemData.currentCalls;
+        document.getElementById('currentUsage2').textContent = systemData.currentCalls;
+        document.getElementById('availableCapacity').textContent = availableCapacity;
+    }
+
+    function createCpuCards() {
+        const container = document.getElementById('cpuCapacityCards');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        // Usa o limite real do sistema se disponível
+        const callsPerCpu = systemData.callsPerCpu || CALLS_PER_CPU;
+
+        for (let i = 0; i < systemData.cpuCores; i++) {
+            // Usa dados reais se disponível, senão assume 0
+            const usage = systemData.cpuCoreUsage[i] || 0;
+            const percentage = (usage / callsPerCpu) * 100;
+
+            let colorClass = 'success';
+            if (percentage > 80) colorClass = 'danger';
+            else if (percentage > 60) colorClass = 'warning';
+
+            const card = `
+                <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
+                    <div class="card bg-dark border-0 shadow cpu-core-card">
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="text-light mb-0">CPU ${i + 1}</h6>
+                                <i class="fas fa-microchip text-${colorClass}"></i>
+                            </div>
+                            <div class="text-muted small mb-2">${usage} / ${callsPerCpu} chamadas</div>
+                            <div class="progress capacity-progress mb-2">
+                                <div class="progress-bar bg-${colorClass}" role="progressbar" style="width: ${percentage}%"></div>
+                            </div>
+                            <div class="small text-${colorClass}">${percentage.toFixed(1)}% utilizado</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.innerHTML += card;
+        }
+    }
+
+    function updateProcessesTable() {
+        const tbody = document.getElementById('processesTable');
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+
+        systemData.processes.forEach(process => {
+            let statusClass = 'success';
+            let statusIcon = 'fa-check-circle';
+
+            if (process.status !== 'running') {
+                statusClass = 'danger';
+                statusIcon = 'fa-exclamation-circle';
+            }
+
+            // Usa os dados exatamente como enviados do backend
+            const cpuDisplay = process.cpu || '-';
+            const memoryDisplay = process.memory || '-';
+            const tasksetDisplay = process.taskset || '-';
+
+            // Define cor para o taskset baseado no valor
+            let tasksetClass = 'text-muted';
+            if (tasksetDisplay !== '-') {
+                tasksetClass = 'text-info'; // Azul para tasksets definidos
+            }
+
+            // Determina quais ações são permitidas para cada processo
+            const actionsHtml = generateProcessActions(process);
+
+            const row = `
+                <tr>
+                    <td class="ps-3">
+                        <i class="fas fa-cog me-2 text-muted"></i>
+                        ${process.name}
+                    </td>
+                    <td>${cpuDisplay}</td>
+                    <td>${memoryDisplay}</td>
+                    <td class="${tasksetClass}">
+                        <i class="fas fa-microchip me-1"></i>
+                        ${tasksetDisplay}
+                    </td>
+                    <td>
+                        <span class="text-${statusClass}">
+                            <i class="fas ${statusIcon} me-1"></i>
+                            ${process.status}
+                        </span>
+                    </td>
+                    <td class="pe-3">
+                        ${actionsHtml}
+                    </td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+    }
+
+    function generateProcessActions(process) {
+        const processName = process.name.toLowerCase();
+        const pid = process.pid;
+
+        // Lista de processos que podem ser reiniciados
+        const restartableProcesses = [
+            'rtpw3.php',
+            'mediaServer.php',
+            'rtpServer.php',
+            'audio.php',
+            'runnerServer.php'
+        ];
+
+        // Verifica se o processo pode ser reiniciado
+        const canRestart = restartableProcesses.some(p => processName.includes(p.toLowerCase()));
+
+        if (!canRestart) {
+            //return '<small class="text-muted">-</small>';
+        }
+
+        let actions = '';
+
+        // Botão Kill (vermelho)
+        actions += `
+            <button class="btn btn-sm btn-outline-danger me-1"
+                    onclick="killProcess('${pid}', '${process.name}')"
+                    title="Finalizar processo">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+
+        // Botão Restart (azul) - só para processos específicos
+        if (true) {
+            actions += `
+                <button class="btn btn-sm btn-outline-primary"
+                        onclick="restartProcess('${process.name}', '${pid}')"
+                        title="Reiniciar processo">
+                    <i class="fas fa-redo"></i>
+                </button>
+            `;
+        }
+
+        return actions;
+    }
+
+    // ==================== FUNÇÕES DE CONTROLE DE PROCESSOS ====================
+    window.killProcess = async (pid, processName) => {
+        // Confirmação antes de finalizar
+        if (!confirm(`Tem certeza que deseja finalizar o processo "${processName}" (PID: ${pid})?`)) {
+            return;
+        }
+
+        try {
+            const data = await sendRecByToken({
+                token: (new UserManager).getValue('token'),
+                action: 'kill',
+                pid: pid,
+                processName: processName
+            }, 'processControl');
+
+            if (data && data.success) {
+                toast(`Processo ${processName} finalizado com sucesso!`, 'Sucesso', 3000, 'success');
+                // Atualiza lista de processos
+                setTimeout(() => requestProcessesList(), 2000);
+            } else {
+                throw new Error(data?.message || 'Erro desconhecido');
+            }
+        } catch (error) {
+            console.error('Erro ao finalizar processo:', error);
+            toast(`Erro ao finalizar processo: ${error.message}`, 'Erro', 5000, 'danger');
+        }
+    }
+
+    window.restartProcess = async (processName, pid) => {
+        // Confirmação antes de reiniciar
+        if (!confirm(`Tem certeza que deseja reiniciar o processo "${processName}"?`)) {
+            return;
+        }
+
+        try {
+            const data = await sendRecByToken({
+                token: (new UserManager).getValue('token'),
+                action: 'restart',
+                pid: pid,
+                processName: processName
+            }, 'processControl');
+
+            if (data && data.success) {
+                toast(`Processo ${processName} reiniciado com sucesso!`, 'Sucesso', 3000, 'success');
+                // Atualiza lista de processos
+                setTimeout(() => requestProcessesList(), 3000);
+            } else {
+                throw new Error(data?.message || 'Erro desconhecido');
+            }
+        } catch (error) {
+            console.error('Erro ao reiniciar processo:', error);
+            toast(`Erro ao reiniciar processo: ${error.message}`, 'Erro', 5000, 'danger');
+        }
+    }
+
+    // Função para reiniciar todo o sistema de workers RTP
+    window.restartAllRtpWorkers = async () => {
+        if (!confirm('Tem certeza que deseja reiniciar TODOS os workers RTP? Isso pode interromper chamadas ativas.')) {
+            return;
+        }
+
+        try {
+            const data = await sendRecByToken({
+                token: (new UserManager).getValue('token'),
+                action: 'restart_all_workers'
+            }, 'processControl');
+
+            if (data && data.success) {
+                toast('Todos os workers RTP foram reiniciados!', 'Sucesso', 5000, 'success');
+                setTimeout(() => {
+                    requestProcessesList();
+                    requestCpuCoresUsage();
+                }, 5000);
+            } else {
+                throw new Error(data?.message || 'Erro desconhecido');
+            }
+        } catch (error) {
+            console.error('Erro ao reiniciar workers:', error);
+            toast(`Erro ao reiniciar workers: ${error.message}`, 'Erro', 5000, 'danger');
+        }
+    }
+
+    window.updateSystemInfo = async () => {
+        const info = systemData.systemInfo;
+
+        document.getElementById('osInfo').textContent = info.os || '-';
+        document.getElementById('systemUptime').textContent = info.uptime || '-';
+        document.getElementById('loadAverage').textContent = info.loadAverage || '-';
+        document.getElementById('cpuTemp').textContent = info.temperature || '-';
+
+        if (info.diskUsage !== undefined) {
+            document.getElementById('diskUsageBar').style.width = info.diskUsage + '%';
+            document.getElementById('diskUsageText').textContent = info.diskUsage + '% utilizado';
+        }
+    }
+
+    function addResourceDataPoint(type, value) {
+        if (isResourcesPaused) return;
+
+        const now = new Date();
+
+        if (resourcesData[type]) {
+            resourcesData[type].push({x: now, y: value});
+
+            // Limita o número de pontos
+            if (resourcesData[type].length > MAX_CHART_POINTS) {
+                resourcesData[type].shift();
+            }
+        }
+    }
+
+    function updateCpuPieChart(cpuPercentage) {
+        if (isResourcesPaused) return;
+
+        const cpuUsed = Math.min(100, Math.max(0, cpuPercentage));
+        const cpuFree = 100 - cpuUsed;
+
+        cpuChart.updateSeries([cpuUsed, cpuFree], true);
+    }
+
+    function updateResourcesChart() {
+        if (isResourcesPaused) return;
+
+        resourcesChart.updateSeries([
+            {name: 'Memória (MB)', data: [...resourcesData.memory]},
+            {name: 'Rede (MB)', data: [...resourcesData.network]}
+        ], true);
+    }
+
+    // ==================== EVENT LISTENERS ====================
+    document.getElementById('refreshCapacityBtn').addEventListener('click', async () => {
+        // Atualiza o ícone para mostrar carregamento
+        const btn = document.getElementById('refreshCapacityBtn');
+        const icon = btn.querySelector('i');
+        icon.classList.remove('fa-sync-alt');
+        icon.classList.add('fa-spinner', 'fa-spin');
+
+        try {
+            // Solicita todos os dados
+            await Promise.all([
+                requestSystemCapacity(),
+                requestResourceMetrics(),
+                requestProcessesList(),
+                requestSystemInfo(),
+                requestCpuCoresUsage()
+            ]);
+
+            toast('Dados atualizados com sucesso!', 'Sucesso', 3000, 'success');
+        } catch (error) {
+            console.error('Erro ao atualizar dados:', error);
+            toast('Erro ao atualizar dados', 'Erro', 5000, 'danger');
+        } finally {
+            // Restaura o ícone
+            icon.classList.remove('fa-spinner', 'fa-spin');
+            icon.classList.add('fa-sync-alt');
+        }
+    });
+
+    // Event listener para pausar gráfico de CPU
+    document.getElementById('pauseCpuBtn').addEventListener('click', () => {
+        isResourcesPaused = !isResourcesPaused;
+        const btn = document.getElementById('pauseCpuBtn');
+        const icon = btn.querySelector('i');
+
+        if (isResourcesPaused) {
+            icon.classList.remove('fa-pause');
+            icon.classList.add('fa-play');
+            btn.title = 'Retomar';
+            toast('Gráfico de CPU pausado', 'Info', 3000, 'info');
+        } else {
+            icon.classList.remove('fa-play');
+            icon.classList.add('fa-pause');
+            btn.title = 'Pausar';
+            toast('Gráfico de CPU retomado', 'Info', 3000, 'info');
+        }
+    });
+
+    document.getElementById('pauseResourcesBtn').addEventListener('click', () => {
+        isResourcesPaused = !isResourcesPaused;
+        const btn = document.getElementById('pauseResourcesBtn');
+        const icon = btn.querySelector('i');
+
+        if (isResourcesPaused) {
+            icon.classList.remove('fa-pause');
+            icon.classList.add('fa-play');
+            btn.title = 'Retomar';
+            toast('Gráficos pausados', 'Info', 3000, 'info');
+        } else {
+            icon.classList.remove('fa-play');
+            icon.classList.add('fa-pause');
+            btn.title = 'Pausar';
+            toast('Gráficos retomados', 'Info', 3000, 'info');
+        }
+    });
+
+    document.getElementById('fullscreenResourcesBtn').addEventListener('click', () => {
+        const chartContainer = document.querySelector('#resourcesChart').closest('.card');
+        const btn = document.getElementById('fullscreenResourcesBtn');
+        const icon = btn.querySelector('i');
+
+        if (!isResourcesFullscreen) {
+            chartContainer.classList.add('chart-fullscreen');
+            icon.classList.remove('fa-expand');
+            icon.classList.add('fa-compress');
+            resourcesChart.updateOptions({chart: {height: window.innerHeight - 100}});
+            isResourcesFullscreen = true;
+        } else {
+            chartContainer.classList.remove('chart-fullscreen');
+            icon.classList.remove('fa-compress');
+            icon.classList.add('fa-expand');
+            resourcesChart.updateOptions({chart: {height: 350}});
+            isResourcesFullscreen = false;
+        }
+    });
+
+    document.getElementById('exportCapacityBtn').addEventListener('click', () => {
+        const exportData = {
+            timestamp: new Date().toISOString(),
+            systemData: systemData,
+            resourcesData: {
+                cpu: resourcesData.cpu.slice(-20), // Últimos 20 pontos
+                memory: resourcesData.memory.slice(-20),
+                network: resourcesData.network.slice(-20)
+            }
+        };
+
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `capacidade-sistema-${new Date().toISOString().slice(0, 19)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        toast('Relatório exportado com sucesso!', 'Sucesso', 3000, 'success');
+    });
+
+    // ==================== INICIALIZAÇÃO E ATUALIZAÇÕES AUTOMÁTICAS ====================
+    function initializeCapacityPage() {
+        // Atualiza status da conexão
+        updateConnectionStatus();
+
+        // Solicita dados iniciais
+        requestSystemCapacity();
+        requestResourceMetrics();
+        requestProcessesList();
+        requestSystemInfo();
+        requestCpuCoresUsage();
+
+        // Inicia atualizações automáticas
+        startAutoUpdates();
+    }
+
+    function startAutoUpdates() {
+        // Atualiza status da conexão a cada 1 segundo
+        setInterval(() => {
+            updateConnectionStatus();
+        }, 1000);
+
+        // Atualiza métricas de recursos a cada 2 segundos
+        setInterval(async () => {
+            if (!isResourcesPaused && isSocketConnected()) {
+                await requestResourceMetrics();
+            }
+        }, 2000);
+
+        // Atualiza dados gerais a cada 10 segundos
+        setInterval(async () => {
+            if (!isResourcesPaused && isSocketConnected()) {
+                await Promise.all([
+                    requestSystemCapacity(),
+                    requestCpuCoresUsage()
+                ]);
+            }
+        }, 10000);
+
+        // Atualiza processos, informações do sistema e reseta o gráfico de recursos a cada 30 segundos
+        setInterval(async () => {
+            if (!isResourcesPaused && isSocketConnected()) {
+                // Limpa os dados do gráfico para um efeito de "reset"
+                resourcesData.memory.length = 0;
+                resourcesData.network.length = 0;
+
+                await Promise.all([
+                    requestProcessesList(),
+                    requestSystemInfo()
+                ]);
+            }
+        }, 30000);
+    }
+
+    // Função auxiliar para verificar se o socket está conectado
+    function isSocketConnected() {
+        return typeof socketGlobal !== 'undefined' &&
+            socketGlobal &&
+            socketGlobal.readyState === WebSocket.OPEN &&
+            !socketGlobal.closed;
+    }
+
+    // Inicializa quando a página carrega
+    initializeCapacityPage();
+
+    // Fechar tela cheia com ESC
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && isResourcesFullscreen) {
+            document.getElementById('fullscreenResourcesBtn').click();
+        }
+    });
+</script>

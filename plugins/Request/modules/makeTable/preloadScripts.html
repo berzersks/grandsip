@@ -1,0 +1,571 @@
+<script src="js/script.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-http.min.js"></script>
+<script>
+    bootstrap = !bootstrap ? {} : bootstrap;
+    $ = !$ ? {} : $;
+    $().modal = !$().modal ? {} : $().modal;
+    $().toast = !$().toast ? {} : $().toast;
+
+    async function asyncGet(url) {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`Request failed with status: ${response.status}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error during GET request:', error);
+            throw error;
+        }
+    }
+
+    function waitForDivContent() {
+        return new Promise((resolve, reject) => {
+            let intervalId = setInterval(() => {
+                let div = document.getElementById('fp');
+                if (div && div.innerHTML.trim() !== '') {
+                    clearInterval(intervalId);
+                    resolve();
+                }
+            }, 100);
+        });
+    }
+
+    function wsConnect() {
+        const hostname = window.location.port ? `${window.location.hostname}:${parseInt(window.location.port)}` : window.location.hostname;
+        const ws = new WebSocket(`wss://${hostname}`);
+        ws.onopen = function (event) {
+            bootstrap.showToast({
+                header: 'Bem vindo',
+                body: 'Conectado ao servidor',
+                toastClass: "bg-success text-white",
+                colorHeader: 'text-white',
+            });
+            ws.send(JSON.stringify({
+                token: $('#fp').text()
+            }));
+        };
+        ws.onmessage = function (event) {
+            const data = JSON.parse(event.data);
+            if (data.success) {
+                ws.send(JSON.stringify({
+                    token: $('#fp').text()
+                }));
+                $('#totalDisk').html(`${data['disk']['total_space']} ${data['disk']['unit']}`);
+                $('#diskUsed').html(`${data['disk']['used_space']} ${data['disk']['unit']}`);
+                $('#freeDisk').html(`${data['disk']['free_space']} ${data['disk']['unit']}`);
+                $('#progressDisk').css('width', `${data['disk']['used_percentage']}%`);
+                $('#progressDisk').attr('class', `progress-bar ${data['disk']['background']}`);
+
+                $('#totalMem').html(`${data['memory']['total_mem']} ${data['memory']['unit']}`);
+                $('#memUsed').html(`${data['memory']['used_mem']} ${data['memory']['unit']}`);
+                $('#memFree').html(`${data['memory']['free_mem']} ${data['memory']['unit']}`);
+                $('#progressMem').css('width', `${data['memory']['used_percentage']}%`);
+                $('#progressMem').attr('class', `progress-bar ${data['memory']['background']}`);
+
+                $('#cpuName').html(data['cpu']['name']);
+                $('#cpuUsed').html(`${data['cpu']['usage']} %`);
+                $('#progressCpu').css('width', `${data['cpu']['usage']}%`);
+                $('#freeCpu').html(`${parseFloat(100 - data['cpu']['usage'])} %`);
+                $('#progressCpu').attr('class', `progress-bar ${data['cpu']['background']}`);
+            }
+        };
+        ws.onerror = function (error) {
+            setTimeout(wsConnect, 3000);
+            return bootstrap.showToast({
+                header: 'Erro',
+                body: 'Não foi possível conectar ao servidor',
+                toastClass: "bg-danger text-white",
+                colorHeader: 'text-white',
+            });
+        };
+    }
+
+    function getIconFile(namefile) {
+        let iconFileCompress = `<img src="img/desconhecido.png" width="26" alt="icon">`;
+        let extension = namefile.split('.').pop();
+        if (extension === 'folder') iconFileCompress = `<img src="img/pasta-aberta.png" width="26" alt="icon">`;
+        if (extension === 'py') iconFileCompress = `<img src="img/python.png" width="26" alt="icon">`;
+        if (extension === 'txt') iconFileCompress = `<img src="img/txt.png" width="26" alt="icon">`;
+        if (extension === 'php') iconFileCompress = `<i class="fa-brands fa-php"></i>`;
+        if (extension === 'json') iconFileCompress = `<img src="img/json.png" width="26" alt="icon">`;
+        if (extension === 'LICENSE') iconFileCompress = `<img src="img/diploma.png" width="26" alt="icon">`;
+        if (extension === 'yml') iconFileCompress = `<img src="img/yaml.png" width="26" alt="icon">`;
+        if (extension === 'dist') iconFileCompress = `<img src="img/dist.png" width="26" alt="icon">`;
+        if (extension === 'md') iconFileCompress = `<img src="img/olho.png" width="26" alt="icon">`;
+        if (extension === 'css') iconFileCompress = `<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Bootstrap_logo.svg/2560px-Bootstrap_logo.svg.png" width="26" alt="icon">`;
+        if (extension === 'scss') iconFileCompress = `<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Bootstrap_logo.svg/2560px-Bootstrap_logo.svg.png" width="26" alt="icon">`;
+        if (extension === 'lock') iconFileCompress = `<img src="img/trancar.png" width="26" alt="icon">`;
+        if (extension === 'ttf') iconFileCompress = `<img src="img/font-file.png" width="26" alt="icon">`;
+        if (extension === 'woff') iconFileCompress = `<img src="img/font-file.png" width="26" alt="icon">`;
+        if (extension === 'eot') iconFileCompress = `<img src="img/trancar.png" width="26" alt="icon">`;
+        if (extension === 'xml') iconFileCompress = `<img src="img/xml-file.png" width="26" alt="icon">`;
+        if (extension === 'png') iconFileCompress = `<img src="img/image.png" width="26" alt="icon">`;
+        if (extension === 'jpg') iconFileCompress = `<img src="img/image.png" width="26" alt="icon">`;
+        if (extension === 'html') iconFileCompress = `<img src="img/html-5.png" width="26" alt="icon">`;
+        if (extension === 'js') iconFileCompress = `<img src="img/js.png" width="26" alt="icon">`;
+        if (extension === 'go') iconFileCompress = `<img src="img/go.png" width="26" alt="icon">`;
+        if (extension === 'exe') iconFileCompress = `<img src="img/windows.png" width="26" alt="icon">`;
+        if (extension === 'deb') iconFileCompress = `<img src="img/linux.png" width="26" alt="icon">`;
+        if (extension === 'pkg') iconFileCompress = `<img src="img/linux.png" width="26" alt="icon">`;
+        if (extension === 'so') iconFileCompress = `<img src="img/linux.png" width="26" alt="icon">`;
+        if (extension === 'jar') iconFileCompress = `<img src="img/java.png" width="26" alt="icon">`;
+        if (extension === 'cpp') iconFileCompress = `<img src="https://cdn-icons-png.flaticon.com/512/8304/8304381.png" width="26" alt="icon">`;
+        if (extension === 'zip') iconFileCompress = `<img src="img/zip.png" width="26" alt="icon">`;
+        if (extension === 'rar') iconFileCompress = `<img src="img/zip.png" width="26" alt="icon">`;
+        if (extension === '7z') iconFileCompress = `<img src="img/zip.png" width="26" alt="icon">`;
+        if (extension === 'tar') iconFileCompress = `<img src="img/zip.png" width="26" alt="icon">`;
+        if (extension === 'gz') iconFileCompress = `<img src="img/zip.png" width="26" alt="icon">`;
+        if (extension === 'bz2') iconFileCompress = `<img src="img/zip.png" width="26" alt="icon">`;
+        if (extension === 'xz') iconFileCompress = `<img src="img/zip.png" width="26" alt="icon">`;
+        if (extension === 'svg') iconFileCompress = `<img src="img/photoshop-lightroom.png" width="26" alt="icon">`;
+        if (extension === 'mp3') iconFileCompress = `<img src="img/music-player.png" width="26" alt="icon">`;
+        if (extension === 'mp4') iconFileCompress = `<img src="img/me.png" width="26" alt="icon">`;
+        if (extension === 'Gemfile') iconFileCompress = `<img src="img/diamond.png" width="26" alt="icon">`;
+        if (extension === 'Makefile') iconFileCompress = `<img src="img/letter-m.png" width="26" alt="icon">`;
+        if (extension === 'eps') iconFileCompress = `<img src="img/photoshop-camera.png" width="26" alt="icon">`;
+        if (extension === 'mkv') iconFileCompress = `<img src="img/me.png" width="26" alt="icon">`;
+        if (extension === 'pdf') iconFileCompress = `<img src="img/pdf.svg" width="26" alt="icon">`;
+        if (extension === 'gif') iconFileCompress = `<img src="img/gif.png" width="26" alt="icon">`;
+        if (extension === 'dll') iconFileCompress = `<img src="img/dll.png" width="26" alt="icon">`;
+        if (extension === 'wav') iconFileCompress = `<img src="img/wav-file.svg" width="26" alt="icon">`;
+        if (extension === 'swf') iconFileCompress = `<img src="img/swf.png" width="26" alt="icon">`;
+        iconFileCompress = iconFileCompress.replaceAll('width="26"', 'width="16"');
+        return iconFileCompress;
+    }
+
+    function isImageExtension(extension) {
+        const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'svg', 'webp'];
+        return imageExtensions.includes(extension.toLowerCase());
+    }
+
+    function setItemsInTbody(items, tbodyId) {
+        var tbody = document.getElementById(tbodyId);
+        tbody.innerHTML = '';
+        items.forEach(function (item) {
+            let iconFileCompress = `<img src="img/desconhecido.png" width="26" alt="icon">`;
+            var extension = item['typeFile'];
+            if (extension === 'cfg') iconFileCompress = `<img src="img/cfg.png" width="26" alt="icon">`;
+            if (extension === 'folder') iconFileCompress = `<img src="img/pasta-aberta.png" width="26" alt="icon">`;
+            if (extension === 'py') iconFileCompress = `<img src="img/python.png" width="26" alt="icon">`;
+            if (extension === 'txt') iconFileCompress = `<img src="img/txt.png" width="26" alt="icon">`;
+            if (extension === 'php') iconFileCompress = `<img src="img/php.png" width="26" alt="icon">`;
+            if (extension === 'json') iconFileCompress = `<img src="img/json.png" width="26" alt="icon">`;
+            if (extension === 'LICENSE') iconFileCompress = `<img src="img/diploma.png" width="26" alt="icon">`;
+            if (extension === 'key') iconFileCompress = `<img src="img/diploma.png" width="26" alt="icon">`;
+            if (extension === 'crt') iconFileCompress = `<img src="img/diploma.png" width="26" alt="icon">`;
+            if (extension === 'sh') iconFileCompress = `<img src="/img/cmd.png" width="26" alt="icon">`;
+            if (extension === 'cmd') iconFileCompress = `<img src="/img/cmd.png" width="26" alt="icon">`;
+            if (extension === 'yml') iconFileCompress = `<img src="img/yaml.png" width="26" alt="icon">`;
+            if (extension === 'dist') iconFileCompress = `<img src="img/dist.png" width="26" alt="icon">`;
+            if (extension === 'md') iconFileCompress = `<img src="img/olho.png" width="26" alt="icon">`;
+            if (extension === 'css') iconFileCompress = `<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Bootstrap_logo.svg/2560px-Bootstrap_logo.svg.png" width="26" alt="icon">`;
+            if (extension === 'scss') iconFileCompress = `<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Bootstrap_logo.svg/2560px-Bootstrap_logo.svg.png" width="26" alt="icon">`;
+            if (extension === 'lock') iconFileCompress = `<img src="img/trancar.png" width="26" alt="icon">`;
+            if (extension === 'ttf') iconFileCompress = `<img src="img/font-file.png" width="26" alt="icon">`;
+            if (extension === 'woff') iconFileCompress = `<img src="img/font-file.png" width="26" alt="icon">`;
+            if (extension === 'eot') iconFileCompress = `<img src="img/trancar.png" width="26" alt="icon">`;
+            if (extension === 'xml') iconFileCompress = `<img src="img/xml-file.png" width="26" alt="icon">`;
+            if (extension === 'png') iconFileCompress = `<img src="img/image.png" width="26" alt="icon">`;
+            if (extension === 'jpg') iconFileCompress = `<img src="img/image.png" width="26" alt="icon">`;
+            if (extension === 'html') iconFileCompress = `<img src="img/html-5.png" width="26" alt="icon">`;
+            if (extension === 'js') iconFileCompress = `<img src="img/js.png" width="26" alt="icon">`;
+            if (extension === 'go') iconFileCompress = `<img src="img/go.png" width="26" alt="icon">`;
+            if (extension === 'exe') iconFileCompress = `<img src="img/windows.png" width="26" alt="icon">`;
+            if (extension === 'deb') iconFileCompress = `<img src="img/linux.png" width="26" alt="icon">`;
+            if (extension === 'pkg') iconFileCompress = `<img src="img/linux.png" width="26" alt="icon">`;
+            if (extension === 'so') iconFileCompress = `<img src="img/linux.png" width="26" alt="icon">`;
+            if (extension === 'jar') iconFileCompress = `<img src="img/java.png" width="26" alt="icon">`;
+            if (extension === 'cpp') iconFileCompress = `<img src="https://cdn-icons-png.flaticon.com/512/8304/8304381.png" width="26" alt="icon">`;
+            if (extension === 'zip') iconFileCompress = `<img src="img/zip.png" width="26" alt="icon">`;
+            if (extension === 'rar') iconFileCompress = `<img src="img/zip.png" width="26" alt="icon">`;
+            if (extension === '7z') iconFileCompress = `<img src="img/zip.png" width="26" alt="icon">`;
+            if (extension === 'tar') iconFileCompress = `<img src="img/zip.png" width="26" alt="icon">`;
+            if (extension === 'gz') iconFileCompress = `<img src="img/zip.png" width="26" alt="icon">`;
+            if (extension === 'bz2') iconFileCompress = `<img src="img/zip.png" width="26" alt="icon">`;
+            if (extension === 'xz') iconFileCompress = `<img src="img/zip.png" width="26" alt="icon">`;
+            if (extension === 'svg') iconFileCompress = `<img src="img/photoshop-lightroom.png" width="26" alt="icon">`;
+            if (extension === 'mp3') iconFileCompress = `<img src="img/music-player.png" width="26" alt="icon">`;
+            if (extension === 'mp4') iconFileCompress = `<img src="img/me.png" width="26" alt="icon">`;
+            if (extension === 'Gemfile') iconFileCompress = `<img src="img/diamond.png" width="26" alt="icon">`;
+            if (extension === 'Makefile') iconFileCompress = `<img src="img/letter-m.png" width="26" alt="icon">`;
+            if (extension === 'eps') iconFileCompress = `<img src="img/photoshop-camera.png" width="26" alt="icon">`;
+            if (extension === 'mkv') iconFileCompress = `<img src="img/me.png" width="26" alt="icon">`;
+            if (item.name === 'LICENSE') iconFileCompress = `<img src="img/diploma.png" width="26" alt="icon">`;
+            if (extension === 'pdf') iconFileCompress = `<img src="img/pdf.svg" width="26" alt="icon">`;
+            if (extension === 'gif') iconFileCompress = `<img src="img/gif.png" width="26" alt="icon">`;
+            if (extension === 'dll') iconFileCompress = `<img src="img/dll.png" width="26" alt="icon">`;
+            if (extension === 'wav') iconFileCompress = `<img src="img/wav-file.svg" width="26" alt="icon">`;
+            if (extension === 'swf') iconFileCompress = `<img src="img/swf.png" width="26" alt="icon">`;
+            if (extension === 'h') iconFileCompress = `<img src="img/letter-c.svg" width="26" alt="icon">`;
+            if (extension === 'c') iconFileCompress = `<img src="img/letter-c.svg" width="26" alt="icon">`;
+            if (extension === 'sln') iconFileCompress = `<img src="img/sln-2272.png" width="26" alt="icon">`;
+            if (extension === 'lua') iconFileCompress = `<img src="img/half-moon.png" width="26" alt="icon">`;
+            if (extension === 'cpp') iconFileCompress = `<img src="img/c-.png" width="26" alt="icon">`;
+            var iconFile = iconFileCompress;
+
+            var tr = document.createElement('tr');
+            var tdName = document.createElement('td');
+            tdName.setAttribute('fullpath', item['path']);
+            var itemName = `<span class="text-white" style="width: 20px;overflow: hidden;white-space: nowrap;text-overflow: ellipsis;flex-grow: 1;">${item['name']}</span>`;
+            if (item['typeFile'] === 'folder') {
+                tdName.innerHTML = `<div onclick="setPath('${item['path']}')">${iconFile} &nbsp;&nbsp; ${itemName}</div>`;
+            } else if (item['isImage']) {
+                tdName.innerHTML = `<div onclick="showImage('${item['path']}', '${item['isImage']}')">${iconFile} &nbsp;&nbsp;${itemName}</div>`;
+            } else {
+                tdName.innerHTML = `<div onclick="showEditor('${item['typeFile']}', '${item['path']}')">${iconFile} &nbsp;&nbsp; ${itemName}</div>`;
+            }
+            var tdCheck = document.createElement('td');
+            tdCheck.classList.add('text-white');
+            tdCheck.innerHTML = `<input type="checkbox" class="form-check-input checkboxFileList" value="'${item.name}'">`;
+            tr.appendChild(tdCheck);
+            tdName.setAttribute('style', 'max-width: 50px; height: 10px !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;');
+
+
+            tr.appendChild(tdName);
+            var tdSize = document.createElement('td');
+            tdSize.classList.add('text-white');
+            tdSize.textContent = item.size;
+            tr.appendChild(tdSize);
+            var tdType = document.createElement('td');
+            tdType.classList.add('text-white');
+            tdType.textContent = item.typeFile === 'folder' ? 'Pasta' : item.typeFile.toUpperCase();
+            if (!tdType.textContent) tdType.textContent = 'Desconhecido';
+            tr.appendChild(tdType);
+
+            var tdPermissions = document.createElement('td');
+            tdPermissions.classList.add('text-white');
+            tdPermissions.textContent = item.permissions;
+            tdPermissions.setAttribute('style', 'max-width: 50px;');
+            tr.appendChild(tdPermissions);
+            var actions = document.createElement('td');
+            actions.classList.add('text-white');
+            actions.setAttribute('style', 'max-width: 50px;');
+
+            if (item['typeFile'] !== 'folder') {
+                actions.innerHTML = `<a class="btn btn-info" onclick="downloadFile('${item.path}')"><i class="fa-regular fa-download"></i></a>`;
+            }
+            actions.innerHTML += `&nbsp;<a class="btn btn-danger" onclick="deleteFile('${item.path}')"><i class="fa-regular fa-trash"></i></a>`;
+            actions.innerHTML += `&nbsp;<a class="btn btn-warning" onclick="renameItem('${item.path}')"><i class="fa-regular fa-edit"></i></a>`;
+            actions.setAttribute('style', 'max-width: 50px;');
+            tr.appendChild(actions);
+
+            tbody.appendChild(tr);
+        });
+    }
+
+
+    async function renameItem(path) {
+        var splp = path;
+        let replacer;
+        const nameforRenamed = splp.split('/')[splp.split('/').length - 1];
+        return (await Swal.fire({
+            title: 'Renomear item',
+            input: 'text',
+            inputLabel: `Renomeando: (${nameforRenamed})`,
+            color: '#fff',
+            inputPlaceholder: 'Digite o novo nome',
+            inputValue: nameforRenamed,
+            showCancelButton: true,
+            confirmButtonText: 'Renomear',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#7367f0',
+            cancelButtonColor: '#424659',
+            background: '#1c2f48',
+            inputValidator: (value) => {
+                if (!value) {
+                    return 'Você precisa digitar um nome';
+                }
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const renameStatusFunction = (path, newName) => {
+                    const toke = $('#fp').text();
+                    replacer = path.replace(nameforRenamed, newName);
+                    fetch(`renameItem?tokenBrowser=${toke}&path=${path}&newName=${replacer}`)
+                        .then(async response => await response.json())
+                        .then(async data => {
+                            if (data.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Sucesso!',
+                                    text: 'Seu arquivo foi renomeado com sucesso!',
+                                    showConfirmButton: false,
+                                    color: '#fff',
+                                    confirmButtonColor: '#7367f0',
+                                    cancelButtonColor: '#424659',
+                                    background: '#1c2f48',
+                                    timer: 2000
+                                });
+                            }
+                            console.log(data)
+                            const fopenDynamicToken = $('#fp').text();
+                            const pathUsing = $('#pathInvisible').text();
+                            setItemsInTbody(
+                                (await asyncGet(`/syncPath?tokenBrowser=${fopenDynamicToken}&path=${pathUsing}`))['information'],
+                                'filesList'
+                            );
+                        });
+                }
+                renameStatusFunction(path, result.value);
+            }
+            return replacer;
+        }));
+    }
+
+    async function deleteFile(path) {
+        return await Swal.fire({
+            title: 'Tem certeza?',
+            text: 'Você não poderá reverter esta ação!',
+            icon: 'warning',
+            color: '#fff',
+            confirmButtonColor: '#7367f0',
+            cancelButtonColor: '#424659',
+            background: '#1c2f48',
+            showCancelButton: true,
+            confirmButtonText: 'Sim, excluir!',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const deleteStatusFunction = (path) => {
+                    var toke = $('#fp').text();
+                    fetch(`deleteFile?tokenBrowser=${toke}&path=${path}`
+                    )
+                        .then(response => response.text())
+                        .then(async data => {
+                            const fopenDynamicToken = $('#fp').text();
+                            const pathUsing = $('#pathInvisible').text();
+                            setItemsInTbody(
+                                (await asyncGet(`/syncPath?tokenBrowser=${fopenDynamicToken}&path=${pathUsing}`))['information'],
+                                'filesList'
+                            );
+                            return Swal.fire({
+                                icon: 'success',
+                                title: 'Sucesso!',
+                                text: 'Seu arquivo foi excluído com sucesso!',
+                                showConfirmButton: false,
+                                color: '#fff',
+                                confirmButtonColor: '#7367f0',
+                                cancelButtonColor: '#424659',
+                                background: '#1c2f48',
+                                timer: 2000
+                            });
+                        });
+                }
+                deleteStatusFunction(path);
+            }
+        })
+
+    }
+
+    function isCompressedExtension(extension) {
+        const compressedExtensions = ['zip', '7z', 'rar', 'tar', 'gz', 'bz2', 'xz'];
+        return compressedExtensions.includes(extension.toLowerCase());
+    }
+
+    var intervalsc;
+
+    async function showEditor(type, path) {
+
+
+        $('#edit-code').modal('hide');
+        let nameFile = path.split('/').pop();
+        $('#nameFileForEdit').text(nameFile);
+        $('#hiddenFileEdit').text(path);
+        $('#edit-code').modal('show');
+    }
+
+    function adjustPath() {
+        if (document.getElementById('visualPath').offsetWidth > document.getElementById('path').offsetWidth) {
+            document.getElementById('visualPath').style.width = '100%';
+        } else {
+            document.getElementById('visualPath').style.width = 'auto';
+        }
+    }
+
+    function isCompressedExtension(extension) {
+        const compressedExtensions = ['zip', '7z', 'rar', 'tar', 'gz', 'bz2', 'xz'];
+        return compressedExtensions.includes(extension.toLowerCase());
+    }
+
+    function getLanguageByExtension(extension) {
+        const languages = {
+            'py': 'python',
+            'txt': 'text',
+            'php': 'php',
+            'json': 'json',
+            'md': 'markdown',
+            'css': 'css',
+            'scss': 'scss',
+            'yml': 'yaml',
+            'lock': 'lock',
+            'ttf': 'ttf',
+            'woff': 'woff',
+            'eot': 'eot',
+            'xml': 'xml',
+            'png': 'png',
+            'jpg': 'jpg',
+            'html': 'php',
+            'js': 'javascript',
+            'ts': 'typescript',
+            'go': 'go',
+            'java': 'java',
+            'deb': 'deb',
+            'cc': 'cpp',
+            'zip': 'zip',
+            'rar': 'rar',
+            '7z': '7z',
+            'tar': 'tar',
+            'gz': 'gz',
+            'bz2': 'bz2',
+            'xz': 'xz',
+            'svg': 'svg',
+            'mp3': 'mp3',
+            'mp4': 'mp4',
+            'Gemfile': 'ruby',
+            'h': 'c',
+            'c': 'c',
+            'sln': 'sln',
+            'lua': 'lua',
+            'cpp': 'cpp',
+        };
+        return languages[extension] || 'text';
+    }
+
+    function setPath(path) {
+        localStorage.setItem('pathInvisible', path);
+        document.getElementById('pathInvisible').innerHTML = path;
+
+        const splitPath = path.split('/');
+        splitPath.forEach(function (item, index) {
+            if (index === 0) {
+                document.getElementById('visualPath').innerHTML = `<span class="text-white"></span> <a class="text-secondary" onclick="setPath('/')">${item}</a>`;
+            } else if (index === splitPath.length - 1) {
+                document.getElementById('visualPath').innerHTML += `<span class="text-white">&nbsp;/</span> <span class="text-blue">${item}</span>`;
+            } else {
+                document.getElementById('visualPath').innerHTML += `<span class="text-white">&nbsp;/</span> <a class="text-secondary" onclick="setPath('${splitPath.slice(0, index + 1).join('/')}')">${item}</a>`;
+            }
+        });
+        adjustPath()
+    }
+
+    function backPath() {
+        const path = document.getElementById('pathInvisible').innerHTML;
+        const splitPath = path.split('/');
+        if (splitPath.length > 1) {
+            splitPath.pop();
+            setPath(splitPath.join('/'));
+        }
+    }
+
+    async function showCompressFile(type, path) {
+        if (true) {
+            $('#modalFileCompress').modal('show');
+            const namefile = path.split('/').pop();
+            $('#nameFileUncompress').html(`(&nbsp;<img src="img/zip.png" width="26" alt="icon">&nbsp;${namefile}&nbsp;<span class="ml-2 badge bg-danger rounded-pill badge-notifications" id="totalFilesCompress">0</span>&nbsp;)`);
+            const realpath = path.split('/').slice(0, -1).join('/') + '/' + namefile;
+            const spinnerPulse = `<div class="spinner-grow" role="status"><span class="visually-hidden"></span></div>`;
+            const namePathToExtract = path.split('/').slice(0, -1).join('/') + '/' + namefile.split('.').slice(0, -1).join('.');
+            $('#addressPathToExtract').text(namePathToExtract.replace('/', ''));
+            $('#compressDetails').html(`<div class="text-center">${spinnerPulse}</div>`);
+            $.ajax({
+                url: `getArchiveDetails?tokenBrowser=${$('#fp').text()}&path=${realpath}`,
+                type: 'GET',
+                success: function (data) {
+                    const listElementBuffer = [];
+                    for (let i = 0; i < data['list'].length; i++) {
+                        let extension = data['list'][i].split('.').pop();
+                        if (extension.includes('/')) extension = extension.split('/').pop();
+                        let iconFileCompress = `<img src="img/linux.png" width="26" alt="icon">`;
+                        if (extension === 'py') iconFileCompress = `<img src="img/python.png" width="26" alt="icon">`;
+                        if (extension === 'txt') iconFileCompress = `<img src="img/txt.png" width="26" alt="icon">`;
+                        if (extension === 'php') iconFileCompress = `<img src="img/php.png" width="26" alt="icon">`;
+                        if (extension === 'json') iconFileCompress = `<img src="img/json.png" width="26" alt="icon">`;
+                        if (extension === 'mkv') iconFileCompress = `<img src="img/me.png" width="26" alt="icon">`;
+                        if (extension === 'LICENSE') iconFileCompress = `<img src="img/diploma.png" width="26" alt="icon">`;
+                        if (extension === 'yml') iconFileCompress = `<img src="img/yaml.png" width="26" alt="icon">`;
+                        if (extension === 'dist') iconFileCompress = `<img src="img/dist.png" width="26" alt="icon">`;
+                        if (extension === 'md') iconFileCompress = `<img src="img/olho.png" width="26" alt="icon">`;
+                        if (extension === 'css') iconFileCompress = `<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Bootstrap_logo.svg/2560px-Bootstrap_logo.svg.png" width="26" alt="icon">`;
+                        if (extension === 'scss') iconFileCompress = `<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Bootstrap_logo.svg/2560px-Bootstrap_logo.svg.png" width="26" alt="icon">`;
+                        if (extension === 'lock') iconFileCompress = `<img src="img/trancar.png" width="26" alt="icon">`;
+                        if (extension === 'ttf') iconFileCompress = `<img src="img/font-file.png" width="26" alt="icon">`;
+                        if (extension === 'woff') iconFileCompress = `<img src="img/font-file.png" width="26" alt="icon">`;
+                        if (extension === 'eot') iconFileCompress = `<img src="img/trancar.png" width="26" alt="icon">`;
+                        if (extension === 'xml') iconFileCompress = `<img src="img/xml-file.png" width="26" alt="icon">`;
+                        if (extension === 'png') iconFileCompress = `<img src="img/image.png" width="26" alt="icon">`;
+                        if (extension === 'jpg') iconFileCompress = `<img src="img/image.png" width="26" alt="icon">`;
+                        if (extension === 'html') iconFileCompress = `<img src="img/html-5.png" width="26" alt="icon">`;
+                        if (extension === 'js') iconFileCompress = `<img src="img/js.png" width="26" alt="icon">`;
+                        if (extension === 'go') iconFileCompress = `<img src="img/go.png" width="26" alt="icon">`;
+                        if (extension === 'exe') iconFileCompress = `<img src="img/windows.png" width="26" alt="icon">`;
+                        if (extension === 'deb') iconFileCompress = `<img src="img/linux.png" width="26" alt="icon">`;
+                        if (extension === 'cpp') iconFileCompress = `<img src="https://cdn-icons-png.flaticon.com/512/8304/8304381.png" width="26" alt="icon">`;
+                        if (extension === 'zip') iconFileCompress = `<img src="img/zip.png" width="26" alt="icon">`;
+                        if (extension === 'rar') iconFileCompress = `<img src="img/zip.png" width="26" alt="icon">`;
+                        if (extension === '7z') iconFileCompress = `<img src="img/zip.png" width="26" alt="icon">`;
+                        if (extension === 'tar') iconFileCompress = `<img src="img/zip.png" width="26" alt="icon">`;
+                        if (extension === 'gz') iconFileCompress = `<img src="img/zip.png" width="26" alt="icon">`;
+                        if (extension === 'bz2') iconFileCompress = `<img src="img/zip.png" width="26" alt="icon">`;
+                        if (extension === 'xz') iconFileCompress = `<img src="img/zip.png" width="26" alt="icon">`;
+                        if (extension === 'svg') iconFileCompress = `<img src="img/photoshop-lightroom.png" width="26" alt="icon">`;
+                        if (extension === 'mp3') iconFileCompress = `<img src="img/music-player.png" width="26" alt="icon">`;
+                        if (extension === 'mp4') iconFileCompress = `<img src="img/me.png" width="26" alt="icon">`;
+                        if (extension === 'Gemfile') iconFileCompress = `<img src="img/diamond.png" width="26" alt="icon">`;
+                        if (extension === 'Makefile') iconFileCompress = `<img src="img/letter-m.png" width="26" alt="icon">`;
+                        if (extension === 'eps') iconFileCompress = `<img src="img/photoshop-camera.png" width="26" alt="icon">`;
+                        listElementBuffer.push(`<li class="list-group-item">${iconFileCompress} &nbsp;&nbsp;${data['list'][i]}</li>`);
+                    }
+                    if (data['list'].length > 6) $('#scrollToEndButtonFather').css('display', 'block');
+                    else $('#scrollToEndButtonFather').css('display', 'none');
+                    $('#totalFilesCompress').text(data['list'].length);
+                    $('#compressDetails').html(listElementBuffer.join(''));
+                    $('#decompressRealFileName').text(namefile);
+                }
+            });
+        }
+    }
+
+    function showImage(path, isVideo = false) {
+        var toke = $('#fp').text();
+        if (isVideo === 'video') {
+            Swal.fire({
+                html: `<video width="80%"  src="imageBase64?tokenBrowser=${toke}&path=${path}" controls autoplay></video>`,
+                title: path,
+                background: '#1c2f48',
+                color: '#fff',
+                showCloseButton: true,
+                showCloseText: true,
+                showConfirmButton: false,
+                showCancelButton: false,
+                width: '70%',
+                height: '70%',
+            })
+        } else {
+            Swal.fire({
+                html: `<img src="imageBase64?tokenBrowser=${toke}&path=${path}" width="100%">`,
+                title: path,
+                background: '#1c2f48',
+                color: '#fff',
+                showCloseButton: true,
+                showCloseText: true,
+                showConfirmButton: false,
+                showCancelButton: false,
+                width: 'auto',
+                height: 'auto',
+            })
+
+        }
+
+    }
+
+
+</script>
+
+
+<style>
+    .swal2-close {
+        border: none !important;
+    }
+</style>

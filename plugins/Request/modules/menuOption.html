@@ -1,0 +1,39 @@
+<script>
+    // Função para atualizar o menu com base na URL
+    function updateActiveMenu() {
+        const path = window.location.pathname.substring(1);
+        const menuItems = document.querySelectorAll('#menu-itens > li > a');
+
+        menuItems.forEach(menuItem => {
+            const pathMenu = menuItem.getAttribute('namepage');
+            if (path === pathMenu) {
+                menuItem.classList.add('active');
+            } else {
+                menuItem.classList.remove('active');
+            }
+        });
+    }
+
+    // Inicializa o menu ao carregar a página
+    document.addEventListener('DOMContentLoaded', updateActiveMenu);
+
+    // Escuta mudanças na URL (voltar/avançar no histórico)
+    window.addEventListener('popstate', updateActiveMenu);
+
+    // Para mudanças com `pushState` ou `replaceState`
+    (function (history) {
+        const originalPushState = history.pushState;
+        const originalReplaceState = history.replaceState;
+
+        history.pushState = function (...args) {
+            originalPushState.apply(history, args);
+            updateActiveMenu();
+        };
+
+        history.replaceState = function (...args) {
+            originalReplaceState.apply(history, args);
+            updateActiveMenu();
+        };
+    })(window.history);
+
+</script>

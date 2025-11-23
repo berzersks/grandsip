@@ -1,0 +1,217 @@
+<div class="modal fade" id="createGroupModal" tabindex="-1" aria-labelledby="createGroupModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content modal-dark">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createGroupModalLabel"
+                    style="background: linear-gradient(90deg, #4e7df7, #8d65ff); -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: 700;">
+                    <i class="fas fa-headset me-2" aria-hidden="true"></i><span id="titleGroupModal">Novo Grupo de Discagem</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <form id="groupForm">
+                    <div class="row mb-4">
+                        <div class="col-md-12 mb-3">
+                            <h6 class="mb-3" style="color: #9353ff; font-weight: 600;">
+                                <i class="fas fa-info-circle me-2" aria-hidden="true"></i>Informações do Grupo
+                            </h6>
+                            <div class="section-box">
+                                <div class="mb-3">
+                                    <label for="groupName" class="form-label">Nome do grupo</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text custom-input-group">
+                                            <i class="fas fa-tag" aria-hidden="true"></i>
+                                        </span>
+                                        <input type="text" class="form-control custom-input" id="groupName"
+                                               placeholder="Ex: Cobrança, Vendas, Suporte"
+                                               required>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="groupType" class="form-label">Tipo de grupo</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text custom-input-group">
+                                            <i class="fas fa-sitemap" aria-hidden="true"></i>
+                                        </span>
+                                        <select class="form-select custom-input" id="groupType" required>
+                                            <option value="" selected disabled>Selecione um tipo</option>
+                                            <option value="outbound">Discagem Ativa (Outbound)</option>
+                                            <option value="inbound">Recebimento (Inbound)</option>
+                                            <option value="mixed" selected>Misto (Inbound/Outbound)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="groupColor" class="form-label">Cor do grupo</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text custom-input-group">
+                                                <i class="fas fa-palette" aria-hidden="true"></i>
+                                            </span>
+                                            <select class="form-select custom-input" id="groupColor">
+                                                <option value="blue" selected>Azul</option>
+                                                <option value="purple">Roxo</option>
+                                                <option value="cyan">Ciano</option>
+                                                <option value="green">Verde</option>
+                                                <option value="orange">Laranja</option>
+                                                <option value="red">Vermelho</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="groupPriority" class="form-label">Prioridade</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text custom-input-group">
+                                                <i class="fas fa-sort-amount-up" aria-hidden="true"></i>
+                                            </span>
+                                            <select class="form-select custom-input" id="groupPriority">
+                                                <option value="1">Baixa</option>
+                                                <option value="2" selected>Normal</option>
+                                                <option value="3">Alta</option>
+                                                <option value="4">Urgente</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mb-4">
+                        <div class="col-md-12 mb-3">
+                            <h6 class="mb-3" style="color: #17a2b8; font-weight: 600;">
+                                <i class="fas fa-users me-2" aria-hidden="true"></i>Vincular contas sips
+                            </h6>
+                            <div class="section-box">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="selectAllAgents"
+                                               aria-label="Selecionar todos os agentes" checked>
+                                        <label class="form-check-label" for="selectAllAgents">Selecionar Todos</label>
+                                    </div>
+
+                                </div>
+                                <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+
+                                    <table class="table align-middle custom-table">
+                                        <thead>
+                                        <tr class="table-header">
+                                            <th width="50px">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="checkAllAgents"
+                                                           aria-label="Marcar/desmarcar todos os agentes" checked>
+                                                    <label class="form-check-label" for="checkAllAgents">
+                                                        <span class="visually-hidden">Selecionar todos</span>
+                                                    </label>
+                                                </div>
+                                            </th>
+                                            <th>Ramal</th>
+                                            <th>Endereço</th>
+                                            <th>Status</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody id="agentsList">
+
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mb-4">
+                        <div class="col-md-12 mb-3">
+                            <h6 class="mb-3" style="color: #4e7df7; font-weight: 600;">
+                                <i class="fas fa-cog me-2" aria-hidden="true"></i>Configurações do Grupo
+                            </h6>
+                            <div class="section-box">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="waitTime" class="form-label">Tempo de Espera (seg)</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text custom-input-group">
+                                                <i class="fas fa-clock" aria-hidden="true"></i>
+                                            </span>
+                                            <input type="number" class="form-control custom-input" id="waitTime"
+                                                   min="10" max="120" value="30">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="retryTime" class="form-label">Tempo para Retry (min)</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text custom-input-group">
+                                                <i class="fas fa-history" aria-hidden="true"></i>
+                                            </span>
+                                            <input type="number" class="form-control custom-input" id="retryTime"
+                                                   min="5" max="1440" value="60">
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2" aria-hidden="true"></i>Cancelar
+                </button>
+                <button type="button" id="saveGroupBtn" class="btn btn-primary">
+                    <i class="fas fa-save me-2" aria-hidden="true"></i>Salvar Grupo
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid p-0">
+    <!-- Header com fundo gradiente -->
+    <div class="d-flex justify-content-between align-items-center p-4 bg-dark"
+         style="background: #283046;">
+        <div class="d-flex align-items-center">
+            <h3 class="mb-0 fw-bold" style="color: white">
+                Gerenciamento de Grupos
+            </h3>
+        </div>
+        <button
+                data-bs-toggle="modal" data-bs-target="#createGroupModal"
+                class="btn btn-primary d-flex align-items-center"
+        >
+            <i class="fas fa-plus-circle me-2"></i> Novo Grupo de Discagem
+        </button>
+    </div>
+
+    <!-- Lista de Grupos -->
+    <div class="card m-4 bg-dark" style="border-radius: 15px;">
+        <div class="card-body">
+            <h5 class="card-title mb-4" style="color: #4e7df7; font-weight: 600;">
+                <i class="fas fa-list-ul me-2"></i>Grupos Cadastrados
+            </h5>
+            <div class="table-responsive">
+                <table class="table align-middle custom-table" id="groupsTable">
+                    <thead>
+                        <tr class="table-header">
+                            <th>Nome</th>
+                            <th>Tipo</th>
+                            <th>Prioridade</th>
+                            <th>Agentes</th>
+                            <th>Status</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="groupsList">
+                        <tr>
+                            <td colspan="6" class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Carregando...</span>
+                                </div>
+                                <p class="mt-2 text-muted">Carregando grupos...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+@import(scriptQueue)

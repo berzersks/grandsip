@@ -1,0 +1,257 @@
+<!-- Menu Lateral -->
+
+<style>
+    .nav-link {
+        padding-bottom: 2px !important;
+        padding-left: 5px !important;
+        padding-right: 5px !important;
+        padding-top: 7px !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+    }
+
+    .help-icon {
+        color: #6c757d;
+        font-size: 12px;
+        cursor: pointer;
+        margin-left: 5px;
+        opacity: 0.7;
+        transition: opacity 0.3s ease;
+    }
+
+    .help-icon:hover {
+        opacity: 1;
+        color: #007bff;
+    }
+
+    .nav-link:hover .help-icon {
+        opacity: 1;
+    }
+
+    .menu-content {
+        flex: 1;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar tooltips do Bootstrap
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+
+<div class="bg-dark show text-light d-none d-lg-block h-100" id="menu-bar"
+     style="width: 250px; z-index: 1050;">
+    <ul class="nav flex-column">
+        <!-- VISÃO GERAL -->
+        <li class="nav-item">
+            <a class="nav-link text-light" href="#" namepage="dashboard" onclick="template.setPage('dashboard')">
+                <span class="menu-content">
+                    <i class="fas fa-home"></i> Dashboard
+                </span>
+                <i class="fas fa-question-circle help-icon" 
+                   data-bs-toggle="tooltip" 
+                   data-bs-placement="right" 
+                   data-bs-title="Painel principal com visão geral do sistema e estatísticas gerais"></i>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link text-light" href="#" namepage="dashboard-core" onclick="template.setPage('dashboard-core')">
+                <span class="menu-content">
+                    <i class="fas fa-desktop"></i> Detalhes do Servidor
+                </span>
+                <i class="fas fa-question-circle help-icon" 
+                   data-bs-toggle="tooltip" 
+                   data-bs-placement="right" 
+                   data-bs-title="Informações técnicas detalhadas sobre o servidor, recursos do sistema, poder de processamento, chamadas alocadas em cada cpu e outras informações destinadas a especialistas."></i>
+            </a>
+        </li>
+
+        <hr style="margin: 10px 0; border-color: #495057;">
+        <li class="nav-item">
+            <small class="text-blue " style="font-size: 11px; font-weight: bold;">CONFIGURAÇÕES</small>
+        </li>
+
+        <!-- GESTÃO DE USUÁRIOS E SISTEMA -->
+        <li>
+            <a class="nav-link text-light" href="#" namepage="accounts" onclick="template.setPage('accounts')">
+                <span class="menu-content">
+                    <i class="fas fa-users"></i> Usuários e Ramais
+                </span>
+                <i class="fas fa-question-circle help-icon" 
+                   data-bs-toggle="tooltip" 
+                   data-bs-placement="right" 
+                   data-bs-title="Adicionar ou editar usuários do sistema (os usuários também terão acesso a uma página para acompanhar saldo e escutar suas chamadas. Estas credenciais serão as mesmas usadas para configurar em um softphone)"></i>
+            </a>
+        </li>
+        <li>
+            <a class="nav-link text-light" href="#" namepage="trunks" onclick="template.setPage('trunks')">
+                <span class="menu-content">
+                    <i class="fa-solid fa-tower-broadcast"></i> Troncos
+                </span>
+                <i class="fas fa-question-circle help-icon" 
+                   data-bs-toggle="tooltip" 
+                   data-bs-placement="right" 
+                   data-bs-title="Adicionar ou editar troncos/rotas de provedores de telefonia."></i>
+            </a>
+        </li>
+        <li>
+            <a class="nav-link text-light" href="#" namepage="callcenter" onclick="template.setPage('callcenter')">
+                <span class="menu-content">
+                    <i class="fa-regular fa-people-group"></i> Grupos e Filas
+                </span>
+                <i class="fas fa-question-circle help-icon" 
+                   data-bs-toggle="tooltip" 
+                   data-bs-placement="right" 
+                   data-bs-title="Criar e configurar grupos de atendimento e filas de chamadas"></i>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link text-light" href="#" namepage="warnings" onclick="template.setPage('warnings')">
+                <span class="menu-content">
+                    <i class="fa-solid fa-bullhorn"></i> Enviar Avisos
+                </span>
+                <i class="fas fa-question-circle help-icon" 
+                   data-bs-toggle="tooltip" 
+                   data-bs-placement="right" 
+                   data-bs-title="Enviar mensagens de notificações e avisos para usuários do sistema"></i>
+            </a>
+        </li>
+
+        <hr style="margin: 10px 0; border-color: #495057;">
+        <li class="nav-item">
+            <small class="text-blue" style="font-size: 11px; font-weight: bold;">MONITORAMENTO</small>
+        </li>
+
+        <!-- MONITORAMENTO EM TEMPO REAL -->
+        <li>
+            <a class="nav-link text-light" href="#" namepage="calls" onclick="template.setPage('calls')">
+                <span class="menu-content">
+                    <i class="fa-solid fa-phone"></i> Chamadas Online
+                </span>
+                <i class="fas fa-question-circle help-icon" 
+                   data-bs-toggle="tooltip" 
+                   data-bs-placement="right" 
+                   data-bs-title="Visualizar, espionar (só possível ouvir pelo navegador), ver números que estão sendo apertados, SIP-TRACE (conhecido com SNGREP), duração de cada chamada, encerrar a chamada."></i>
+            </a>
+        </li>
+        <li>
+            <a class="nav-link text-light" href="#" namepage="calls-accounts"
+               onclick="template.setPage('calls-accounts')">
+                <span class="menu-content">
+                    <i class="fa-solid fa-headset"></i> Ramais em Ligação
+                </span>
+                <i class="fas fa-question-circle help-icon" 
+                   data-bs-toggle="tooltip" 
+                   data-bs-placement="right" 
+                   data-bs-title="Visualizar ramais que estão em linha de atendimento"></i>
+            </a>
+        </li>
+
+        <li>
+            <a class="nav-link text-light" href="#" namepage="calls-waiting" onclick="template.setPage('calls-waiting')">
+                <span class="menu-content">
+                    <i class="fa-solid fa-clock"></i> Chamadas em Espera
+                </span>
+                <i class="fas fa-question-circle help-icon" 
+                   data-bs-toggle="tooltip" 
+                   data-bs-placement="right" 
+                   data-bs-title="Visualizar chamadas que estão na lista de espera por atendimento"></i>
+            </a>
+        </li>
+
+        <li>
+            <a class="nav-link text-light" href="#" namepage="calls-queue" onclick="template.setPage('calls-queue')">
+                <span class="menu-content">
+                    <i class="fa-solid fa-chart-line"></i> Volume de Chamadas
+                </span>
+                <i class="fas fa-question-circle help-icon" 
+                   data-bs-toggle="tooltip" 
+                   data-bs-placement="right" 
+                   data-bs-title="Volume da voz dos participantes da chamada em tempo real sem delay, pode ser utilizado para saber ambos os lados estão enviando/recebendo voz."></i>
+            </a>
+        </li>
+
+        <hr style="margin: 10px 0; border-color: #495057;">
+        <li class="nav-item">
+            <small class="text-blue" style="font-size: 11px; font-weight: bold;">RELATÓRIOS</small>
+        </li>
+
+        <!-- RELATÓRIOS E HISTÓRICO -->
+        <li>
+            <a class="nav-link text-light" href="#" namepage="logsCalls" onclick="template.setPage('logsCalls')">
+                <span class="menu-content">
+                    <i class="fa-solid fa-history"></i> Histórico de Chamadas
+                </span>
+                <i class="fas fa-question-circle help-icon" 
+                   data-bs-toggle="tooltip" 
+                   data-bs-placement="right" 
+                   data-bs-title="Consultar histórico completo de todas as chamadas realizadas"></i>
+            </a>
+        </li>
+        <li>
+            <a class="nav-link text-light" href="#" namepage="connections" onclick="template.setPage('connections')">
+                <span class="menu-content">
+                    <i class="fa-solid fa-globe"></i> Conexões
+                </span>
+                <i class="fas fa-question-circle help-icon" 
+                   data-bs-toggle="tooltip" 
+                   data-bs-placement="right" 
+                   data-bs-title="Monitorar conexões ativas e logs de acesso ao sistema"></i>
+            </a>
+        </li>
+        <li>
+            <a class="nav-link text-light" href="#" namepage="ip-ban" onclick="template.setPage('ip-ban')">
+                <span class="menu-content">
+                    <i class="fa-solid fa-shield-alt"></i> Conexões Bloqueadas
+                </span>
+                <i class="fas fa-question-circle help-icon" 
+                   data-bs-toggle="tooltip" 
+                   data-bs-placement="right" 
+                   data-bs-title="Gerenciar IPs bloqueados e regras de segurança de acesso"></i>
+            </a>
+        </li>
+
+        <hr style="margin: 10px 0; border-color: #495057;">
+        <li class="nav-item">
+            <small class="text-blue" style="font-size: 11px; font-weight: bold;">FERRAMENTAS AVANÇADAS</small>
+        </li>
+
+        <!-- DISCADORES -->
+        <li>
+            <a class="nav-link" href="#" namepage="campaign" onclick="template.setPage('campaign')" style="color: #495057 !important;">
+                <span class="menu-content">
+                    <i class="fa-solid fa-robot"></i> <strong style="color: #495057 !important;">Disk V2</strong> <small>(Deprecated)</small>
+                </span>
+                <i class="fas fa-question-circle help-icon" style="color: #495057 !important;"
+                   data-bs-toggle="tooltip" 
+                   data-bs-placement="right" 
+                   data-bs-title="Discador automático versão 2 (descontinuado - não recomendado para uso)"></i>
+            </a>
+        </li>
+        <li>
+            <a class="nav-link text-light" href="#" namepage="campaign-old" onclick="template.setPage('campaign-old')">
+                <span class="menu-content">
+                    <i class="fa-solid fa-phone-slash"></i> Discador V1 <small>(Legacy)</small>
+                </span>
+                <i class="fas fa-question-circle help-icon" 
+                   data-bs-toggle="tooltip" 
+                   data-bs-placement="right" 
+                   data-bs-title="Discador automático versão 1 (sistema legado para compatibilidade)"></i>
+            </a>
+        </li>
+    </ul>
+    <footer class="footer text-left mb-3">
+        <div class="footer-inner" style="margin-left: 12px; font-size: 16px;">
+        <span class="footer-brand text-white">
+        feito com ❤️ por <a class="footer-link text-white" href="https://t.me/spechshop">spechshop</a>
+    </span>
+        </div>
+    </footer>
+
+
+</div>

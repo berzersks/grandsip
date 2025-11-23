@@ -1,0 +1,316 @@
+<div class="row">
+
+    <!-- Card de Estatísticas -->
+    <div class="col-md-4 mb-3">
+        <div class="card bg-dark shadow text-light h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Estatísticas
+                </h5>
+
+                <div class="row text-center">
+                    <div class="col-12 mb-2">
+                        <div class="border-bottom pb-2">
+                            <h4 class="mb-0 text-success" id="totalCalls">0</h4>
+                            <small>Chamadas com voz</small>
+                        </div>
+                    </div>
+
+                    <div class="col-12 mb-2">
+                        <div class="border-bottom pb-2">
+                            <h4 class="mb-0 text-danger" id="errorCalls">0</h4>
+                            <small>Chamadas com Erro</small>
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <h4 class="mb-0 text-warning" id="totalSpent">R$ 0,00</h4>
+                        <small>Custo das chamadas atuais</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Card do Saldo -->
+    <div class="col-md-8 mb-3">
+        <div class="card bg-dark shadow text-light h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h5 class="card-title">
+                        <i class="fas fa-wallet me-2"></i>
+                        Olá <span id="userwel"></span>
+                    </h5>
+                    <button class="btn btn-success btn-sm" onclick="solicitarRecarga()">
+                        <i class="fab fa-pix me-1"></i>
+                        Recarregar PIX
+                    </button>
+                </div>
+
+                <div class="text-center">
+                    <p class="text-muted mb-1">Saldo Atual</p>
+                    <p class="display-5 text-warning mb-3">
+                        <i class="fas fa-dollar-sign"></i>
+                        <span id="accountBalance">0.00</span>
+                    </p>
+                </div>
+
+                <!-- Configuração da BINA -->
+                <div class="border-top pt-3 mb-3">
+                    <h6 class="text-light mb-2">
+                        <i class="fas fa-phone-alt me-2"></i>
+                        Binal atual: <code id="cid"></code>
+                    </h6>
+
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-8">
+                            <label for="binaInput" class="form-label text-muted small">
+                                Número que aparecerá nas suas chamadas:
+                            </label>
+                            <input
+                                    type="text"
+                                    class="form-control form-control-sm bg-dark text-light border-secondary"
+                                    id="binaInput"
+                                    placeholder="Ex: [COUNTRY][DDD]993xxxxxx [COUNTRY]4x9xxxxxx29"
+                                    maxlength="30"
+                                    style="font-family: monospace;">
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-primary btn-sm w-100" onclick="salvarBina()" id="salvarBinaBtn">
+                                <i class="fas fa-save me-1"></i>
+                                Salvar
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mt-2">
+                        <small class="text-warning">
+                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            <strong>Regras:</strong> Apenas números (0-9) e a letra 'x' são permitidos
+                        </small>
+                    </div>
+
+                    <div id="binaStatus" class="mt-2" style="display: none;">
+                        <small class="text-success">
+                            <i class="fas fa-check-circle me-1"></i>
+                            BINA salva com sucesso!
+                        </small>
+                    </div>
+                </div>
+
+                <!-- Configuração do V.A.D -->
+                <div class="border-top pt-3 mb-3">
+
+
+                    <div class="row g-2">
+                        <div class="col-md-4 mb-3">
+                            <h6 class="text-light mb-2">
+                                <i class="fas fa-microphone me-2"></i>
+                                Voice Activity Detection (V.A.D)
+                            </h6>
+                            <div class="form-check form-switch"
+                                 onclick="alternarVAD(!document.getElementById('vadToggle').checked)">
+                                <input class="form-check-input" type="checkbox" role="switch" id="vadToggle"
+                                       style="transform: scale(1.3);">
+                                <label class="form-check-label text-light ms-2" for="vadToggle" id="vadToggleLabel">
+                                    Desativado
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <h6 class="text-light mb-2">
+                                <i class="fas fa-volume-up me-2"></i>
+                                Modo de áudio
+                            </h6>
+                            <select class="form-select" id="dmedia" name="dmedia" required>
+                                <option value="no">Áudio Mixado (Spech Engine)</option>
+                                <option value="yes">Áudio Original (Direta da origem)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="vadStatus" class="mt-2" style="display: none;">
+                        <small class="text-success">
+                            <i class="fas fa-check-circle me-1"></i>
+                            V.A.D atualizado com sucesso!
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Tabela de Chamadas Ativas -->
+<div class="row  ">
+    <div class="col-12 ">
+        <div class="card bg-dark">
+            <div class="card-header bg-night text-light">
+                <h5 class="mb-0">
+                    <i class="fas fa-phone-alt me-2"></i>
+                    Chamadas Ativas
+                </h5>
+            </div>
+            <div class="card-body ">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                        <tr>
+                            <th>Origem</th>
+                            <th>Número</th>
+                            <th>BINA</th>
+                            <th>Duração</th>
+                            <th>Status</th>
+                            <th>Custo</th>
+                            <th>Ações</th>
+                        </tr>
+                        </thead>
+                        <tbody id="activeCalls">
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">
+                                <i class="fas fa-phone-slash fa-2x mb-2"></i>
+                                <br>
+                                Nenhuma chamada ativa no momento
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Controles de Paginação -->
+                <div class="d-flex justify-content-between align-items-center mt-3" id="paginationControls"
+                     style="display: none;">
+                    <div class="text-muted">
+                        <small>
+                            Mostrando <span id="showingStart">0</span> - <span id="showingEnd">0</span> de <span
+                                id="totalRecords">0</span> registros
+                        </small>
+                    </div>
+
+                    <nav aria-label="Navegação da tabela">
+                        <ul class="pagination pagination-sm mb-0" id="paginationList">
+                            <li class="page-item" id="prevPageBtn">
+                                <button class="page-link" onclick="irParaPagina(window.paginaAtual - 1)">
+                                    <i class="fas fa-chevron-left me-1"></i>
+                                    Anterior
+                                </button>
+                            </li>
+
+                            <li class="page-item" id="nextPageBtn">
+                                <button class="page-link" onclick="irParaPagina(window.paginaAtual + 1)">
+                                    Próxima
+                                    <i class="fas fa-chevron-right ms-1"></i>
+                                </button>
+                            </li>
+                        </ul>
+                    </nav>
+
+                    <div>
+                        <select class="form-select form-select-sm" id="itemsPerPage"
+                                onchange="alterarItensPorPagina(this.value)" style="width: auto;">
+                            <option value="5" selected>5 por página</option>
+                            <option value="10">10 por página</option>
+                            <option value="25">25 por página</option>
+                            <option value="50">50 por página</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Estilos para o campo BINA */
+    #binaInput {
+        transition: all 0.3s ease;
+    }
+
+    #binaInput:focus {
+        border-color: #4e73df;
+        box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+    }
+
+    #binaInput.is-invalid {
+        border-color: #e74a3b;
+        background-color: rgba(231, 74, 59, 0.1);
+    }
+
+    #binaInput.is-invalid:focus {
+        box-shadow: 0 0 0 0.2rem rgba(231, 74, 59, 0.25);
+    }
+
+    /* Animação para mensagem de status */
+    #binaStatus {
+        transition: opacity 0.3s ease;
+    }
+
+    /* Placeholder personalizado */
+    #binaInput::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+        font-style: italic;
+    }
+
+    /* Tooltip personalizado para regras */
+    .bina-tooltip {
+        position: relative;
+        display: inline-block;
+        cursor: help;
+    }
+
+    .bina-tooltip:hover::after {
+        content: "Exemplos válidos: 11999887766, 1199988776x, 551199887766x";
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #333;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 4px;
+        font-size: 12px;
+        white-space: nowrap;
+        z-index: 1000;
+        margin-bottom: 5px;
+    }
+
+    .bina-tooltip:hover::before {
+        content: "";
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 5px solid transparent;
+        border-top-color: #333;
+        z-index: 1000;
+    }
+
+    /* Estilos para o toggle V.A.D */
+    #vadToggle {
+        background-color: #6c757d;
+        border-color: #6c757d;
+        transition: all 0.3s ease;
+    }
+
+    #vadToggle:checked {
+        background-color: #28a745;
+        border-color: #28a745;
+    }
+
+    #vadToggle:focus {
+        box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+    }
+
+    /* Animação para mensagem de status do V.A.D */
+    #vadStatus {
+        transition: opacity 0.3s ease;
+    }
+
+    /* Estilo para label do toggle */
+    #vadToggleLabel {
+        font-weight: 500;
+        transition: color 0.3s ease;
+    }
+</style>
+

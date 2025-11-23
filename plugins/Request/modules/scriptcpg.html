@@ -1,0 +1,737 @@
+<script>
+
+    window.loadGroups = async () => {
+        const response = await fetch('listQueues', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                authToken: (new UserManager).getValue('token')
+            })
+        });
+        const data = await response.json();
+        return Object.keys(data);
+    }
+
+    window.listAudios = async () => {
+        const response = await fetch('/listAudios', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({authToken: new UserManager().getValue('token')})
+        });
+        const data = await response.json();
+        if (data.error) return toast('Erro ao listar áudios', 'Erro', 5000, 'error');
+        const listSounds = document.getElementById('listSounds');
+        listSounds.innerHTML = '';
+        if (!data['audios']) return toast('Nenhum áudio encontrado', 'Info', 5000, 'info');
+
+        let availableSounds = data['audios'];
+        availableSounds.forEach(sound => {
+            const li = document.createElement('li');
+            li.style.border = 'none';
+            li.className = 'list-group-item mt-1 d-flex justify-content-between align-items-center';
+
+            const soundName = document.createElement('span');
+            soundName.textContent = sound;
+
+            const btnPlay = document.createElement('button');
+            btnPlay.className = 'btn btn-primary btn-sm mx-1';
+            const icon = document.createElement('i');
+            icon.className = 'fas fa-play';
+            btnPlay.appendChild(icon);
+            btnPlay.onclick = () => {
+                if (isPlaying) {
+                    audio.pause();
+                    isPlaying = false;
+                    icon.className = 'fas fa-play';
+                    return;
+                } else {
+                    isPlaying = true;
+                }
+                audio = new Audio(`getSound?token=${new UserManager().getValue('token')}&sound=${sound}`);
+                audio.play();
+                icon.className = 'fas fa-stop';
+                audio.onended = () => {
+                    icon.className = 'fas fa-play';
+                    isPlaying = false;
+                };
+            };
+
+            const btnDelete = document.createElement('button');
+            btnDelete.className = 'btn btn-danger btn-sm';
+            btnDelete.innerHTML = '<i class="fas fa-trash"></i>';
+            btnDelete.onclick = () => {
+                fetch(`/deleteSound`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({authToken: new UserManager().getValue('token'), sound: sound})
+                }).then(response => {
+                    if (response.ok) {
+                        listSounds.removeChild(li);
+                        toast('Áudio excluído com sucesso!', 'Sucesso', 3000, 'danger');
+                        window.listAudios();
+                    } else {
+                        toast('Erro ao excluir o áudio.', 'Erro', 3000, 'error');
+                    }
+                });
+            };
+
+            const endButtons = document.createElement('div');
+            endButtons.className = 'd-flex';
+            endButtons.appendChild(btnPlay);
+            endButtons.appendChild(btnDelete);
+
+            li.appendChild(soundName);
+            li.appendChild(endButtons);
+            listSounds.appendChild(li);
+        });
+
+        // Atualizar o select de áudio principal
+        const audioPrincipal = document.getElementById('audio-principal');
+        audioPrincipal.innerHTML = '';
+        availableSounds.forEach(sound => {
+            audioPrincipal.appendChild(new Option(sound, sound));
+        });
+    }
+
+    window.listPhonesLists = async () => {
+        const response = await fetch('/listPhonesLists', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({authToken: new UserManager().getValue('token')})
+        });
+        const data = await response.json();
+        if (data.error) return toast('Erro ao listar listas de telefones', 'Erro', 5000, 'error');
+        const listPhones = document.getElementById('listPhones');
+        listPhones.innerHTML = '';
+        if (!data['lists']) {
+            listPhones.appendChild(new Option('Adicione uma lista primeiro!', ''));
+            return toast('Nenhuma lista de telefones encontrada', 'Info', 5000, 'info');
+        }
+
+        let availableLists = data['lists'];
+        for (let i = 0; i < availableLists.length; i++) {
+            const list = availableLists[i];
+            listPhones.appendChild(new Option(list, list));
+        }
+    }
+
+    window.getConfigCampaign = async () => {
+        const response = await fetch('/getConfigCampaign', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({authToken: new UserManager().getValue('token')})
+        });
+        const data = await response.json();
+        await window.listAudios();
+        await window.listPhonesLists();
+
+        if (data.error) return toast('Erro ao obter configuração da campanha', 'Erro', 5000, 'error');
+        const config = data['config'];
+        document.getElementById('vSimultaneousCalls').textContent = config['simultaneousCalls'];
+        document.getElementById('simultaneousCalls').value = config['simultaneousCalls'];
+        document.getElementById('vwaitsig').textContent = config['awaitSignal'];
+        document.getElementById('awaitSignal').value = config['awaitSignal'];
+        document.getElementById('audio-principal').value = config['mainAudio'];
+        document.getElementById('listPhones').value = config['phonesList'];
+
+        document.getElementById('lista-acoes-teclas').innerHTML = '';
+
+        const teclasDefinidas = data['dtmfMap'];
+
+        const listaAcoesTeclas = document.getElementById('lista-acoes-teclas');
+        listaAcoesTeclas.innerHTML = '';
+        for (const [tecla, action] of Object.entries(teclasDefinidas)) {
+            const li = document.createElement('li');
+            li.style.border = 'none';
+            li.className = 'list-group-item mt-1 d-flex justify-content-between align-items-center';
+            const actionText = document.createElement('span');
+            let actionType = action.type;
+            if (actionType === 'audio') {
+                actionType = `<i class="fas fa-music"></i>`;
+            } else if (actionType === 'close') {
+                actionType = `<i class="fas fa-phone-slash"></i> Desligar`;
+            } else if (actionType === 'transfer') {
+                actionType = `<i class="fa-duotone fa-regular fa-user-headset"></i> Transferir ao grupo: (${action.group})`;
+            } else if (actionType === 'coletar') {
+                actionType = `<i class="fas fa-microphone"></i> Coletar ${action.collectType === 'digits' ? 'dígitos' : 'voz'} (máx: ${action.maxDigits}s, timeout: ${action.timeout}s)`;
+            } else if (actionType === 'condicional') {
+                let conditionText = '';
+                switch (action.conditionType) {
+                    case 'equal':
+                        conditionText = 'igual a';
+                        break;
+                    case 'not_equal':
+                        conditionText = 'diferente de';
+                        break;
+                    case 'greater':
+                        conditionText = 'maior que';
+                        break;
+                    case 'less':
+                        conditionText = 'menor que';
+                        break;
+                    case 'contains':
+                        conditionText = 'contém';
+                        break;
+                }
+                actionType = `<i class="fas fa-code-branch"></i> Condição: ${action.sourceType} ${conditionText} ${action.comparisonValue}`;
+            }
+
+            actionText.innerHTML = `Tecla <span class="badge badge-ativo">${tecla}</span> : ${(action.type === 'close') ? actionType : actionType}${action.file ? ` ${action.file.includes('audio:') ? action.file.split('audio:')[1] : action.file}` : ''}`;
+
+            const btnDelete = document.createElement('button');
+            btnDelete.className = 'btn btn-danger btn-sm';
+            btnDelete.innerHTML = '<i class="fas fa-trash"></i>';
+            btnDelete.onclick = () => {
+                delete teclasDefinidas[tecla];
+                listaAcoesTeclas.removeChild(li);
+
+                fetch('/deleteAction', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        tecla: tecla,
+                        authToken: new UserManager().getValue('token')
+                    })
+                }).then(response => {
+                    if (response.ok) {
+                        toast('Ação da tecla excluída com sucesso', 'Sucesso', 5000, 'success');
+                        window.getConfigCampaign();
+                    } else {
+                        toast('Erro ao excluir ação da tecla', 'Erro', 5000, 'error');
+                    }
+                });
+            };
+
+            li.appendChild(actionText);
+            li.appendChild(btnDelete);
+            listaAcoesTeclas.appendChild(li);
+        }
+
+        if (Object.keys(teclasDefinidas).length === 0) {
+            listaAcoesTeclas.innerHTML = `
+                <div class="alert alert-info mt-2" role="alert">
+                    <i class="fas fa-info-circle"></i> Nenhuma tecla foi definida ainda.
+                    Use o botão "Configurar Teclas" para configurar as ações das teclas.
+                </div>`;
+        }
+
+        // Atualizar status da campanha
+        let startCampaign = document.getElementById('startCampaign');
+        let campaignStatus = document.getElementById('campaignStatusBadge');
+        if (data['running']) {
+            campaignStatus.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> Campanha Ativa`;
+            campaignStatus.className = 'status-badge badge-ativo';
+            startCampaign.innerHTML = '<i class="fas fa-pause"></i> Pausar Campanha';
+            startCampaign.className = 'btn btn-warning';
+        } else {
+            campaignStatus.innerHTML = `<i class="fas fa-circle-pause"></i> Campanha Pausada`;
+            campaignStatus.className = 'status-badge badge-pausado';
+            startCampaign.innerHTML = '<i class="fas fa-play"></i> Iniciar Campanha';
+            startCampaign.className = 'btn btn-success';
+        }
+
+        // Atualizar estatísticas
+        document.getElementById('remaignsCalls').textContent = data.remaining || '0';
+        document.getElementById('callsFeitas').textContent = data.solved || '0';
+        document.getElementById('currentsCalls').textContent = data.actives || '0';
+        document.getElementById('refers').textContent = data.refers || '0';
+    }
+
+    window.renderTeclaOptions = () => {
+        teclaOptionsContainer.innerHTML = '';
+        for (let i = 0; i <= 9; i++) {
+            const button = document.createElement('button');
+            button.className = `btn m-1 ${teclasDefinidas[i] ? 'btn-available' : 'btn-available'} ${teclaSelecionada === i ? 'btn-selected' : ''}`;
+            button.textContent = i;
+            button.dataset.tecla = i;
+            button.onclick = () => selectTecla(i);
+            teclaOptionsContainer.appendChild(button);
+        }
+    }
+
+    window.renderAdditionalOptions = async () => {
+        additionalOptionsContainer.innerHTML = '';
+        const selectedAction = teclaAcaoSelect.value;
+        if (selectedAction === 'audio') {
+            const audioSelect = document.createElement('select');
+            audioSelect.style.marginTop = '10px';
+            audioSelect.className = 'form-control';
+            audioSelect.id = 'audio-select';
+
+            // Obter áudios disponíveis
+            const response = await fetch('/listAudios', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({authToken: new UserManager().getValue('token')})
+            });
+            const data = await response.json();
+
+            if (!data.error && data.audios) {
+                data.audios.forEach(audio => {
+                    const option = document.createElement('option');
+                    option.value = audio;
+                    option.textContent = audio;
+                    audioSelect.appendChild(option);
+                });
+            }
+
+            additionalOptionsContainer.appendChild(audioSelect);
+        } else if (selectedAction === 'encaminhar') {
+            const groupsSelect = document.createElement('select');
+            groupsSelect.style.marginTop = '10px';
+            groupsSelect.className = 'form-control';
+            groupsSelect.id = 'groups-select';
+            const groups = await window.loadGroups();
+            for (let i = 0; i < groups.length; i++) {
+                const groupName = groups[i];
+                const option = document.createElement('option');
+                option.value = groupName;
+                option.textContent = groupName;
+                groupsSelect.appendChild(option);
+            }
+            additionalOptionsContainer.appendChild(groupsSelect);
+        } else if (selectedAction === 'coletar') {
+            const collectTypeDiv = document.createElement('div');
+            collectTypeDiv.className = 'form-group mt-2';
+
+            const collectTypeLabel = document.createElement('label');
+            collectTypeLabel.className = 'form-label';
+            collectTypeLabel.textContent = 'Tipo de coleta:';
+
+            const collectTypeSelect = document.createElement('select');
+            collectTypeSelect.className = 'form-control';
+            collectTypeSelect.id = 'collect-type';
+
+            const optionDigits = document.createElement('option');
+            optionDigits.value = 'digits';
+            optionDigits.textContent = 'Dígitos';
+
+            const optionVoice = document.createElement('option');
+            optionVoice.value = 'voice';
+            optionVoice.textContent = 'Voz';
+
+            collectTypeSelect.appendChild(optionDigits);
+            collectTypeSelect.appendChild(optionVoice);
+
+            collectTypeDiv.appendChild(collectTypeLabel);
+            collectTypeDiv.appendChild(collectTypeSelect);
+
+            const digitsDiv = document.createElement('div');
+            digitsDiv.className = 'form-group mt-2';
+
+            const digitsLabel = document.createElement('label');
+            digitsLabel.className = 'form-label';
+            digitsLabel.textContent = 'Máximo de dígitos:';
+
+            const digitsInput = document.createElement('input');
+            digitsInput.type = 'number';
+            digitsInput.min = '1';
+            digitsInput.max = '20';
+            digitsInput.value = '5';
+            digitsInput.className = 'form-control';
+            digitsInput.id = 'max-digits';
+
+            digitsDiv.appendChild(digitsLabel);
+            digitsDiv.appendChild(digitsInput);
+
+            const timeoutDiv = document.createElement('div');
+            timeoutDiv.className = 'form-group mt-2';
+
+            const timeoutLabel = document.createElement('label');
+            timeoutLabel.className = 'form-label';
+            timeoutLabel.textContent = 'Tempo de espera (segundos):';
+
+            const timeoutInput = document.createElement('input');
+            timeoutInput.type = 'number';
+            timeoutInput.min = '1';
+            timeoutInput.max = '30';
+            timeoutInput.value = '5';
+            timeoutInput.className = 'form-control';
+            timeoutInput.id = 'timeout';
+
+            timeoutDiv.appendChild(timeoutLabel);
+            timeoutDiv.appendChild(timeoutInput);
+
+            const audioDiv = document.createElement('div');
+            audioDiv.className = 'form-group mt-2';
+
+            const audioLabel = document.createElement('label');
+            audioLabel.className = 'form-label';
+            audioLabel.textContent = 'Áudio de instrução:';
+
+            const audioSelect = document.createElement('select');
+            audioSelect.className = 'form-control';
+            audioSelect.id = 'audio-instruction';
+
+            // Obter áudios disponíveis
+            const response = await fetch('/listAudios', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({authToken: new UserManager().getValue('token')})
+            });
+            const data = await response.json();
+
+            if (!data.error && data.audios) {
+                data.audios.forEach(audio => {
+                    const option = document.createElement('option');
+                    option.value = audio;
+                    option.textContent = audio;
+                    audioSelect.appendChild(option);
+                });
+            }
+
+            audioDiv.appendChild(audioLabel);
+            audioDiv.appendChild(audioSelect);
+
+            additionalOptionsContainer.appendChild(collectTypeDiv);
+            additionalOptionsContainer.appendChild(digitsDiv);
+            additionalOptionsContainer.appendChild(timeoutDiv);
+            additionalOptionsContainer.appendChild(audioDiv);
+        } else if (selectedAction === 'condicional') {
+            const conditionTypeDiv = document.createElement('div');
+            conditionTypeDiv.className = 'form-group mt-2';
+
+            const conditionTypeLabel = document.createElement('label');
+            conditionTypeLabel.className = 'form-label';
+            conditionTypeLabel.textContent = 'Tipo de condição:';
+
+            const conditionTypeSelect = document.createElement('select');
+            conditionTypeSelect.className = 'form-control';
+            conditionTypeSelect.id = 'condition-type';
+
+            const options = [
+                {value: 'equal', text: 'Igual a'},
+                {value: 'not_equal', text: 'Diferente de'},
+                {value: 'greater', text: 'Maior que'},
+                {value: 'less', text: 'Menor que'},
+                {value: 'contains', text: 'Contém'}
+            ];
+
+            options.forEach(opt => {
+                const option = document.createElement('option');
+                option.value = opt.value;
+                option.textContent = opt.text;
+                conditionTypeSelect.appendChild(option);
+            });
+
+            conditionTypeDiv.appendChild(conditionTypeLabel);
+            conditionTypeDiv.appendChild(conditionTypeSelect);
+
+            const valueDiv = document.createElement('div');
+            valueDiv.className = 'form-group mt-2';
+
+            const valueLabel = document.createElement('label');
+            valueLabel.className = 'form-label';
+            valueLabel.textContent = 'Valor para comparação:';
+
+            const valueInput = document.createElement('input');
+            valueInput.type = 'text';
+            valueInput.className = 'form-control';
+            valueInput.id = 'comparison-value';
+            valueInput.placeholder = 'Valor para comparar';
+
+            valueDiv.appendChild(valueLabel);
+            valueDiv.appendChild(valueInput);
+
+            const sourceDiv = document.createElement('div');
+            sourceDiv.className = 'form-group mt-2';
+
+            const sourceLabel = document.createElement('label');
+            sourceLabel.className = 'form-label';
+            sourceLabel.textContent = 'Fonte do valor:';
+
+            const sourceSelect = document.createElement('select');
+            sourceSelect.className = 'form-control';
+            sourceSelect.id = 'source-type';
+
+            const sourceOptions = [
+                {value: 'input', text: 'Valor digitado'},
+                {value: 'queue_position', text: 'Posição na fila'},
+                {value: 'time', text: 'Horário atual'},
+                {value: 'day', text: 'Dia da semana'},
+                {value: 'custom', text: 'Valor personalizado'}
+            ];
+
+            sourceOptions.forEach(opt => {
+                const option = document.createElement('option');
+                option.value = opt.value;
+                option.textContent = opt.text;
+                sourceSelect.appendChild(option);
+            });
+
+            sourceDiv.appendChild(sourceLabel);
+            sourceDiv.appendChild(sourceSelect);
+
+            additionalOptionsContainer.appendChild(conditionTypeDiv);
+            additionalOptionsContainer.appendChild(valueDiv);
+            additionalOptionsContainer.appendChild(sourceDiv);
+        }
+    }
+
+    // Event Listeners
+    document.getElementById('startCampaign').onclick = async () => {
+        const response = await fetch('/startCampaign', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({authToken: new UserManager().getValue('token')})
+        });
+        const data = await response.json();
+        if (data.error) return toast('Erro ao iniciar a campanha', 'Erro', 5000, 'error');
+        let startCampaign = document.getElementById('startCampaign');
+        if (startCampaign.innerHTML.includes('Iniciar')) {
+            toast('Campanha iniciada', 'Processo iniciado', 5000, 'success');
+        } else {
+            toast('Campanha pausada', 'Processo pausado', 5000, 'info');
+        }
+        await window.getConfigCampaign();
+    }
+
+    document.getElementById('resetCampaign').onclick = async () => {
+        const response = await fetch('/resetCampaign', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({authToken: new UserManager().getValue('token')})
+        });
+        const data = await response.json();
+        if (data.error) return toast('Erro ao reiniciar a campanha', 'Erro', 5000, 'error');
+        toast('Campanha reiniciada', 'Sucesso', 5000, 'success');
+        await window.getConfigCampaign();
+    }
+
+    document.getElementById('audio-principal').onchange = async () => {
+        const response = await fetch('/setMainAudio', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                authToken: new UserManager().getValue('token'),
+                audio: document.getElementById('audio-principal').value
+            })
+        });
+        const data = await response.json();
+        if (data.error) return toast('Erro ao definir áudio principal', 'Erro', 5000, 'error');
+        toast('Áudio principal definido com sucesso', 'Sucesso', 5000, 'success');
+    }
+
+    document.getElementById('listPhones').onchange = async () => {
+        const response = await fetch('/setPhonesList', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                authToken: new UserManager().getValue('token'),
+                list: document.getElementById('listPhones').value
+            })
+        });
+        const data = await response.json();
+        if (data.error) return toast('Erro ao definir lista de telefones', 'Erro', 5000, 'error');
+        toast('Lista de telefones definida com sucesso', 'Sucesso', 5000, 'success');
+    }
+
+    document.getElementById('awaitSignal').onchange = () => {
+        document.getElementById('vwaitsig').textContent = document.getElementById('awaitSignal').value;
+        fetch('/setAwaitSignal', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                authToken: new UserManager().getValue('token'),
+                awaitSignal: document.getElementById('awaitSignal').value
+            })
+        }).then(response => {
+            if (response.ok) {
+                toast('Tempo máximo de espera definido com sucesso', 'Sucesso', 5000, 'success');
+            } else {
+                toast('Erro ao definir tempo máximo de espera', 'Erro', 5000, 'error');
+            }
+        });
+    }
+
+    document.getElementById('awaitSignal').oninput = () => {
+        document.getElementById('vwaitsig').textContent = document.getElementById('awaitSignal').value;
+    }
+
+    document.getElementById('audio-arquivo').onchange = async () => {
+        const file = document.getElementById('audio-arquivo').files[0];
+        const formData = new FormData();
+        formData.append('audio', file);
+        formData.append('authToken', new UserManager().getValue('token'));
+        const response = await fetch('/uploadSound', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        if (data.error) return toast('Erro ao enviar áudio', 'Erro', 5000, 'error');
+        toast('Áudio enviado com sucesso', 'Sucesso', 5000, 'success');
+        await window.listAudios();
+    }
+
+    document.getElementById('salvar-tecla-acao').onclick = async () => {
+        const selectedAction = teclaAcaoSelect.value;
+        const selectedTecla = teclaSelecionada;
+        const additionalOptions = additionalOptionsContainer.children;
+        let action = {type: selectedAction === 'desligar' ? 'close' : selectedAction};
+
+        if (selectedAction === 'audio') {
+            action.file = additionalOptions[0].value;
+        } else if (selectedAction === 'encaminhar') {
+            action.group = additionalOptions[0].value;
+            action.type = 'transfer';
+        } else if (selectedAction === 'coletar') {
+            action.collectType = document.getElementById('collect-type').value;
+            action.maxDigits = document.getElementById('max-digits').value;
+            action.timeout = document.getElementById('timeout').value;
+            action.audioPrompt = document.getElementById('audio-instruction').value;
+        } else if (selectedAction === 'condicional') {
+            action.conditionType = document.getElementById('condition-type').value;
+            action.comparisonValue = document.getElementById('comparison-value').value;
+            action.sourceType = document.getElementById('source-type').value;
+        }
+
+        teclasDefinidas[selectedTecla] = action;
+        const response = await fetch('/setAction', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                authToken: new UserManager().getValue('token'),
+                tecla: selectedTecla,
+                action: action
+            })
+        });
+        const data = await response.json();
+        if (data.error) return toast('Erro ao definir ação da tecla', 'Erro', 5000, 'error');
+        toast('Ação da tecla definida com sucesso', 'Sucesso', 5000, 'success');
+        closeModal('modal-definir-tecla');
+        await window.getConfigCampaign();
+    }
+
+    document.getElementById('simultaneousCalls').onchange = () => {
+        document.getElementById('vSimultaneousCalls').textContent = document.getElementById('simultaneousCalls').value;
+        fetch('/setSimultaneousCalls', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                authToken: new UserManager().getValue('token'),
+                simultaneousCalls: document.getElementById('simultaneousCalls').value
+            })
+        }).then(response => {
+            if (response.ok) {
+                toast('Número de chamadas simultâneas definido com sucesso', 'Sucesso', 5000, 'success');
+            } else {
+                toast('Erro ao definir número de chamadas simultâneas', 'Erro', 5000, 'error');
+            }
+        });
+    }
+
+    document.getElementById('simultaneousCalls').oninput = () => {
+        document.getElementById('vSimultaneousCalls').textContent = document.getElementById('simultaneousCalls').value;
+    }
+
+    document.getElementById('deleteList').onclick = async () => {
+        const selectedList = document.getElementById('listPhones').value;
+        if (!selectedList) {
+            return toast('Selecione uma lista para excluir', 'Aviso', 5000, 'warning');
+        }
+
+        if (confirm(`Tem certeza que deseja excluir a lista "${selectedList}"?`)) {
+            const response = await fetch('/deletePhonesList', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    authToken: new UserManager().getValue('token'),
+                    list: selectedList
+                })
+            });
+            const data = await response.json();
+            if (data.error) return toast('Erro ao excluir lista de telefones', 'Erro', 5000, 'error');
+            toast('Lista de telefones excluída com sucesso', 'Sucesso', 5000, 'success');
+            await window.listPhonesLists();
+            await window.getConfigCampaign();
+        }
+    }
+
+    document.getElementById('phoneUpload').onchange = async () => {
+        const file = document.getElementById('phoneUpload').files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('phonesList', file);
+        formData.append('authToken', new UserManager().getValue('token'));
+
+        // Mostrar mensagem de upload
+        toast('Enviando lista de telefones...', 'Processando', 5000, 'info');
+
+        const response = await fetch('/uploadPhonesList', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        if (data.error) return toast('Erro ao enviar lista de telefones', 'Erro', 5000, 'error');
+        toast('Lista de telefones enviada com sucesso', 'Sucesso', 5000, 'success');
+        await window.listPhonesLists();
+        await window.getConfigCampaign();
+    }
+
+    // Funções auxiliares para os controles de chamadas
+    document.getElementById('increaseCall').addEventListener('click', function () {
+        let currentVal = parseInt(document.getElementById('simultaneousCalls').value);
+        if (currentVal < 250) {
+            document.getElementById('simultaneousCalls').value = currentVal + 1;
+            document.getElementById('vSimultaneousCalls').textContent = currentVal + 1;
+            document.getElementById('simultaneousCalls').dispatchEvent(new Event('change'));
+        }
+    });
+
+    document.getElementById('decreaseCall').addEventListener('click', function () {
+        let currentVal = parseInt(document.getElementById('simultaneousCalls').value);
+        if (currentVal > 1) {
+            document.getElementById('simultaneousCalls').value = currentVal - 1;
+            document.getElementById('vSimultaneousCalls').textContent = currentVal - 1;
+            document.getElementById('simultaneousCalls').dispatchEvent(new Event('change'));
+        }
+    });
+
+    // Funções para os modais
+    function showModal(modalId) {
+        document.getElementById(modalId).classList.add('show');
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('show');
+    }
+
+    definirTeclaButton.addEventListener('click', () => {
+        showModal('modal-definir-tecla');
+        renderTeclaOptions();
+        renderAdditionalOptions();
+    });
+
+    fecharModalButton.addEventListener('click', () => {
+        closeModal('modal-definir-tecla');
+    });
+
+    document.querySelectorAll('.btn-close').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const modal = this.closest('.modal');
+            if (modal) {
+                closeModal(modal.id);
+            }
+        });
+    });
+
+    teclaAcaoSelect.addEventListener('change', () => renderAdditionalOptions());
+
+    // Simular função toast para mensagens
+    window.toast = function (message, title, duration, type) {
+        console.log(`${title}: ${message} (${type})`);
+        // Implementar um sistema de toast/notificação visual
+    }
+
+
+    window.listAudios();
+    window.listPhonesLists();
+    window.getConfigCampaign();
+
+    // Atualizar estatísticas periodicamente
+    setInterval(() => {
+        window.getConfigCampaign();
+    }, 10000); // a cada 10 segundos
+
+</script>

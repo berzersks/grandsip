@@ -1,0 +1,162 @@
+<style>
+    #menu-bar {
+        display: none !important;
+    }
+</style>
+<div class="container-fluid d-flex justify-content-center align-items-center"
+     style="min-height: 50vh; overflow: hidden;">
+    <div class="card-distak-dark bg-dark shadow-sm col-12 col-sm-10 col-md-8 col-lg-4">
+        <div class="text-center">
+            <h1 class="text-center text-white">
+                <span class="text-blue">Entrar</span>
+            </h1>
+        </div>
+        <form id="login" onsubmit="login(event)">
+            <div id="validate-username">
+                <b class="text-blue" id="label-username">Usuário</b>
+                <div class="input-group mb-3">
+                    <span class="input-group-text"><i class="fa-duotone fa-regular fa-user"></i></span>
+                    <input class="form-control" id="username" placeholder="Ex: Usuário" type="text">
+                </div>
+            </div>
+            <div id="validate-password">
+                <b class="text-blue">Senha</b>
+                <div class="input-group mb-3">
+                    <span class="input-group-text">
+                        <i class="fa-sharp-duotone fa-solid fa-key"></i>
+                    </span>
+                    <input autocomplete="off" class="form-control" id="password" placeholder="Senha"
+                           type="password">
+                </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="form-check">
+                    <input class="form-check-input transparent-checkbox" id="remember" type="checkbox">
+                    <label class="form-check-label" for="remember">Lembrar-me</label>
+                </div>
+                <a class="text-decoration-none" href="#">Esqueceu a senha?</a>
+            </div>
+            <button class="btn btn-primary w-100">Entrar</button>
+        </form>
+        <div class="text-center mt-3">
+            <p class="text-white">
+                Não tem uma conta?
+                <a class="text-decoration-none" href="#" onclick="template.setPage('register')">
+                    Cadastre-se
+                </a>
+            </p>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    let user = new UserManager();
+    let nb = document.getElementById('navbar-top');
+    let mb = document.getElementById('menu-bar');
+    if (user.getValue('remember') === true) {
+        document.getElementById('username').value = user.getValue('username');
+        document.getElementById('password').value = user.getValue('password');
+        document.getElementById('remember').checked = true;
+    } else {
+        document.getElementById('remember').checked = false;
+    }
+    window.invalidateInputs = (formId) => {
+        const form = document.getElementById(formId);
+        if (form) {
+            const elements = form.querySelectorAll('input, textarea, .input-group-text, b');
+            window.requestAnimationFrame(() => {
+                const fragment = document.createDocumentFragment();
+                elements.forEach(element => {
+                    const clone = element.cloneNode(true);
+                    if (clone.tagName.toLowerCase() === 'input' || clone.tagName.toLowerCase() === 'textarea') {
+                        clone.style.borderColor = clone.value.trim() ? 'red' : 'red';
+                    } else {
+                        clone.style.color = 'red';
+                        clone.style.borderColor = 'red';
+                    }
+                    fragment.appendChild(clone);
+                    element.replaceWith(clone);
+                });
+            });
+        } else {
+            console.error(`Formulário com ID "${formId}" não encontrado.`);
+        }
+    };
+    window.revertInvalidation = (formId) => {
+        const form = document.getElementById(formId);
+        if (form) {
+            const elements = form.querySelectorAll('input, textarea, .input-group-text, b');
+            window.requestAnimationFrame(() => {
+                const fragment = document.createDocumentFragment();
+                elements.forEach(element => {
+                    const clone = element.cloneNode(true);
+                    if (clone.tagName.toLowerCase() === 'input' || clone.tagName.toLowerCase() === 'textarea') {
+                        clone.style.borderColor = '';
+                    } else {
+                        clone.style.color = '';
+                        clone.style.borderColor = '';
+                    }
+                    fragment.appendChild(clone);
+                    element.replaceWith(clone);
+                });
+            });
+        } else {
+            console.error(`Formulário com ID "${formId}" não encontrado.`);
+        }
+    };
+    window.login = async (event) => {
+        event.preventDefault();
+        let username = document.getElementById('username').value;
+        let password = document.getElementById('password').value;
+        if (username.length < 1) return (invalidateInputs('validate-username'));
+        if (password.length < 1) return (invalidateInputs('validate-password'));
+        let remember = document.getElementById('remember').checked;
+        let data = {
+            username: username,
+            password: password,
+            remember: remember
+        };
+        let response = await fetch('authenticate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        }).then(r => r.json());
+        user.updateUserData('remember', remember);
+        user.updateUserData('username', username);
+        user.updateUserData('password', password);
+        if (response.success) {
+            let tokenAuth = response['tokenAuth'];
+            user.updateUserData('token', tokenAuth);
+            await template.setPage('dashboard');
+            $('#root').css('margin-left', '250px');
+            mb.style.width = '250px';
+            nb.style.display = 'block';
+            mb.style.display = 'block';
+            toast('Seja bem vindo', 'Sucesso', 3000, 'success');
+            socketGlobal.send(JSON.stringify({
+                type: 'connect',
+                data: (new UserManager()).getUserData()
+            }));
+            return mb.classList.add('show');
+        } else {
+            toast(response.message, 'Atenção', 3000, 'error');
+        }
+        return false;
+    };
+
+    if (mb.classList.contains('show')) mb.classList.remove('show');
+    mb.style.width = '0px';
+    mb.style.display = 'none';
+    nb.style.display = 'none';
+    $('#root').css('margin-left', '0px');
+    setInterval(() => {
+        if (mb.classList.contains('show')) mb.classList.remove('show');
+        mb.style.width = '0px';
+        mb.style.display = 'none';
+        nb.style.display = 'none';
+        $('#root').css('margin-left', '0px');
+    }, 100);
+</script>

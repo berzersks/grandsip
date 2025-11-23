@@ -1,0 +1,1187 @@
+<style>
+    .btn-selected {
+        background-color: #f9ca24 !important;
+        color: #000;
+    }
+
+    .btn-available {
+        background-color: #343a40;
+        color: #000000;
+    }
+
+    .btn-available:hover {
+        background-color: #f9ca24;
+        color: #000 !important;
+    }
+</style>
+<div class="row mt-1">
+    <div class="col-sm-6 mb-2">
+        <!-- div para mostrar andamento da campanha -->
+        <div class="bg-dark text-blue card">
+            <div class="card-header">
+                <!-- <i class="fas fa-phone"></i> Andamento da Campanha -->
+                <h5 id="campaignStatus">Carregando...</h5>
+            </div>
+            <div class="card-body">
+
+                <!-- relayAddress host -->
+                <div class="config-group">
+
+                    <!-- botoes iniciar e parar campanha -->
+                    <div class="text-lg-start mb-2">
+                        <button class="btn btn-success" id="startCampaign">
+                            <i class="fas fa-play"></i> Iniciar
+                        </button>
+                        <button class="btn btn-warning" id="resetCampaign">
+                            <i class="fa fa-rotate-right"></i> Reiniciar
+                        </button>
+                    </div>
+                    <!-- slide de numero de chamadas simultaneas -->
+                    <div class="config-group mt-4">
+                        <label for="simultaneousCalls" style="margin-bottom: -20px"><i class="fas fa-phone"></i>
+                            Corrotinas: (Máx 250):
+                            <code class="h5 text-danger rounded-pill bg-light p-1">
+                                <i class="fa-sharp fa-regular fa-hexagon-nodes-bolt"></i>
+                                <span id="vSimultaneousCalls">0</span>&nbsp;
+                            </code>
+                        </label>
+                        <!-- botao + e - com onclick para aumentar e diminuir o valor do slide -->
+                        <button class="btn btn-primary" onclick="(function () {
+                            // aumenta as simultaneas em +1
+                            document.getElementById('simultaneousCalls').value = parseInt(document.getElementById('simultaneousCalls').value) + 1;
+                            // atualiza o valor do slide
+                            document.getElementById('vSimultaneousCalls').textContent = document.getElementById('simultaneousCalls').value;
+                            // faz acionar o evento de mudança do slide
+                            document.getElementById('simultaneousCalls').onchange();
+
+                        })()">
+                            <i class="fa fa-plus text-white"></i>
+                        </button>
+
+
+                        <input class="form-range" id="simultaneousCalls" max="250" min="1" type="range" value="0">
+                    </div>
+                    <div class="config-group ">
+                        <label class="form-label mt-4" for="awaitSignal" style="margin-bottom: -4px">Tempo máximo de
+                            espera:
+                            <code class="h5 text-danger rounded-pill bg-light p-1" id="">
+                                <i class="fa fa-clock"></i> <span id="vwaitsig">0</span>s&nbsp;
+                            </code></label>
+                        <input class="form-range" id="awaitSignal" max="120" min="1" type="range" value="0">
+                    </div>
+
+                    <!-- opção do audio principal -->
+                    <div class="config-group mt-3">
+                        <label for="audio-principal"><i class="fas fa-music"></i> Áudio Principal:</label>
+                        <select class="form-control" id="audio-principal">
+                        </select>
+                    </div>
+
+                    <div class="config-group mt-3">
+                        <label class="form-label" for="listPhones" style="margin-bottom: -5px">
+                            <i class="fa fa-user"></i> Lista selecionada para a campanha:
+                        </label>
+                        <div class="input-group">
+                            <select class="form-control" id="listPhones">
+                                <option>Adicione uma lista primeiro!</option>
+                            </select>
+                            <button class="btn btn-danger" id="deleteList">
+                                <i class="fa fa-trash"></i>
+                            </button>
+                            <label class="btn btn-primary" for="phoneUpload"
+                                   style="border-bottom-right-radius: 4px; border-top-right-radius: 4px">
+                                <i class="fa fa-plus"></i> Adicionar
+                            </label>
+
+                            <input id="phoneUpload" style="display: none" type="file">
+                        </div>
+                    </div>
+
+                    <!--
+
+
+
+Tenhos essas informações no banco de dados que posso usar para criar a interface
+simultaneous TEXT,  chamadas simultaneas que estão sendo feitas
+remaining    TEXT,  chamadas que ainda faltam ser feitas
+solved       TEXT,  chamadas que foram feitas
+actives   integer   chamadas que estão ativas
+-->
+
+                </div>
+            </div>
+        </div>
+        <style>
+            :root {
+                --primary-color: #2563eb;
+                --secondary-color: #4f46e5;
+                --success-color: #0ea5e9;
+                --danger-color: #e11d48;
+                --warning-color: #f59e0b;
+                --info-color: #06b6d4;
+                --light-color: #f8fafc;
+                --dark-color: #0f172a;
+                --bg-gradient: linear-gradient(135deg, #3b82f6, #6366f1);
+                --card-bg: #283046;
+                --card-text: #e2e8f0;
+                --text-muted: #94a3b8;
+                --border-color: #1e293b;
+                --hover-bg: #1e293b;
+                --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+                --input-bg: #1e293b;
+                --input-text: #f8fafc;
+                --input-border: #374151;
+            }
+
+
+            .dashboard-container {
+                padding: 1.5rem;
+                max-width: 1600px;
+                margin: 0 auto;
+            }
+
+            .header-section {
+                background: var(--bg-gradient);
+                border-radius: 20px;
+                padding: 2rem;
+                color: white;
+                margin-bottom: 2rem;
+                box-shadow: 0 10px 30px rgba(59, 130, 246, 0.2);
+                position: relative;
+                overflow: hidden;
+            }
+
+            .header-section::before {
+                content: "";
+                position: absolute;
+                top: -50%;
+                right: -50%;
+                width: 100%;
+                height: 200%;
+                background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 60%);
+                opacity: 0.6;
+            }
+
+            .campaign-title {
+                font-weight: 700;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .control-card {
+                background: var(--card-bg);
+                border-radius: 16px;
+                padding: 1.5rem;
+                box-shadow: var(--card-shadow);
+                height: 100%;
+                transition: all 0.3s ease;
+                border: 1px solid var(--border-color);
+                color: var(--card-text);
+            }
+
+            .control-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                border-color: rgba(99, 102, 241, 0.3);
+            }
+
+            .card-header {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 1rem;
+                padding-bottom: 0.75rem;
+                border-bottom: 1px solid #eee;
+            }
+
+            .card-title {
+                font-size: 1.25rem;
+                font-weight: 600;
+                margin: 0;
+                color: var(--primary-color);
+            }
+
+
+            .status-badge {
+                display: inline-flex;
+                align-items: center;
+                padding: 0.5rem 1rem;
+                border-radius: 30px;
+                font-weight: 600;
+                font-size: 0.9rem;
+                margin-right: 0.5rem;
+                margin-bottom: 0.5rem;
+                transition: all 0.2s ease;
+            }
+
+            .status-badge:hover {
+                transform: translateY(-2px);
+            }
+
+            .badge-ativo {
+                background-color: rgba(14, 165, 233, 0.12);
+                color: var(--success-color);
+                border: 1px solid rgba(14, 165, 233, 0.3);
+            }
+
+            .badge-pausado {
+                background-color: rgba(245, 158, 11, 0.12);
+                color: var(--warning-color);
+                border: 1px solid rgba(245, 158, 11, 0.3);
+            }
+
+            .badge-offline {
+                background-color: rgba(225, 29, 72, 0.12);
+                color: var(--danger-color);
+                border: 1px solid rgba(225, 29, 72, 0.3);
+            }
+
+            .stat-card {
+                text-align: center;
+                padding: 1.2rem;
+                border-radius: 14px;
+                transition: all 0.3s ease;
+                background: var(--card-bg);
+                box-shadow: var(--card-shadow);
+                border: 1px solid var(--border-color);
+                position: relative;
+                overflow: hidden;
+            }
+
+            .stat-card::after {
+                content: "";
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                height: 3px;
+                width: 100%;
+                background: var(--bg-gradient);
+                opacity: 0.6;
+            }
+
+            .stat-card:hover {
+                transform: scale(1.05);
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+                border-color: rgba(99, 102, 241, 0.3);
+            }
+
+            .stat-title {
+                font-size: 0.85rem;
+                color: var(--text-muted);
+                margin-bottom: 0.5rem;
+                font-weight: 500;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .stat-value {
+                font-size: 2.2rem;
+                font-weight: 700;
+                background: var(--bg-gradient);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                margin: 0;
+                text-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+            }
+
+            .calls-table {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 0;
+                border-radius: 16px;
+                overflow: hidden;
+                box-shadow: var(--card-shadow);
+            }
+
+            .calls-table thead {
+                background: var(--bg-gradient);
+                color: white;
+            }
+
+            .calls-table th {
+                padding: 1.2rem 1rem;
+                text-align: left;
+                vertical-align: middle;
+                font-weight: 600;
+                letter-spacing: 0.5px;
+                text-transform: uppercase;
+                font-size: 0.85rem;
+            }
+
+            .calls-table td {
+                padding: 1.2rem 1rem;
+                text-align: left;
+                vertical-align: middle;
+                color: var(--card-text);
+            }
+
+            .calls-table tbody tr {
+                background-color: var(--card-bg);
+                transition: all 0.2s ease;
+            }
+
+            .calls-table tbody tr:hover {
+                background-color: var(--hover-bg);
+            }
+
+            .calls-table tbody tr:not(:last-child) {
+                border-bottom: 1px solid var(--border-color);
+            }
+
+            .status-indicator {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                padding: 0.5rem 1rem;
+                border-radius: 30px;
+                font-size: 0.85rem;
+                font-weight: 600;
+                transition: all 0.2s ease;
+            }
+
+            .status-indicator:hover {
+                transform: translateY(-2px);
+            }
+
+            .status-pending {
+                background-color: rgba(245, 158, 11, 0.12);
+                color: var(--warning-color);
+                border: 1px solid rgba(245, 158, 11, 0.3);
+            }
+
+            .status-active {
+                background-color: rgba(14, 165, 233, 0.12);
+                color: var(--success-color);
+                border: 1px solid rgba(14, 165, 233, 0.3);
+            }
+
+            .status-failed {
+                background-color: rgba(225, 29, 72, 0.12);
+                color: var(--danger-color);
+                border: 1px solid rgba(225, 29, 72, 0.3);
+            }
+
+            .status-completed {
+                background-color: rgba(6, 182, 212, 0.12);
+                color: var(--info-color);
+                border: 1px solid rgba(6, 182, 212, 0.3);
+            }
+
+            .btn-force {
+                background-color: var(--primary-color);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 0.5rem 1rem;
+                font-size: 0.85rem;
+                transition: all 0.2s ease;
+                box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+            }
+
+            .btn-force:hover {
+                background-color: var(--secondary-color);
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+            }
+
+            .btn-outline-primary {
+                color: var(--primary-color);
+                border-color: var(--primary-color);
+                background-color: transparent;
+                transition: all 0.3s ease;
+            }
+
+            .btn-outline-primary:hover {
+                background-color: var(--primary-color);
+                color: white;
+                box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            }
+
+
+            .tab-content {
+                padding: 1.5rem 0;
+            }
+
+            .advanced-features {
+                margin-top: 2rem;
+            }
+
+            .nav-tabs {
+                border-bottom: 1px solid var(--border-color);
+                gap: 0.5rem;
+            }
+
+            .nav-tabs .nav-link {
+                color: var(--text-muted);
+                border: none;
+                padding: 1rem 1.5rem;
+                font-weight: 600;
+                border-radius: 10px 10px 0 0;
+                border-bottom: 3px solid transparent;
+                transition: all 0.3s ease;
+                margin-bottom: -1px;
+            }
+
+            .nav-tabs .nav-link:hover:not(.active) {
+                color: var(--primary-color);
+                background-color: rgba(59, 130, 246, 0.05);
+            }
+
+            .nav-tabs .nav-link.active {
+                color: var(--primary-color);
+                background: linear-gradient(to bottom, rgba(59, 130, 246, 0.1), transparent);
+                border-bottom: 3px solid var(--primary-color);
+            }
+
+            .feature-icon {
+                font-size: 2rem;
+                color: var(--primary-color);
+                margin-bottom: 1rem;
+            }
+
+            .feature-card {
+                text-align: center;
+                padding: 2rem 1.5rem;
+                border-radius: 16px;
+                background: var(--card-bg);
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.03);
+                height: 100%;
+                transition: all 0.4s ease;
+                border: 1px solid var(--border-color);
+                position: relative;
+                overflow: hidden;
+            }
+
+            .feature-card::before {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 4px;
+                background: var(--bg-gradient);
+                opacity: 0;
+                transition: opacity 0.4s ease;
+            }
+
+            .feature-card:hover {
+                transform: translateY(-10px);
+                box-shadow: 0 15px 30px rgba(0, 0, 0, 0.08);
+                border-color: rgba(99, 102, 241, 0.3);
+            }
+
+            .feature-card:hover::before {
+                opacity: 1;
+            }
+
+            .feature-title {
+                font-weight: 600;
+                margin: 1rem 0;
+                color: var(--primary-color);
+            }
+
+            .feature-description {
+                color: var(--text-muted);
+                font-size: 0.95rem;
+                line-height: 1.6;
+            }
+
+            /* Tooltips */
+            .tooltip-info {
+                cursor: pointer;
+                color: var(--info-color);
+                margin-left: 5px;
+            }
+
+            /* Call quality indicator */
+            .call-quality {
+                display: flex;
+                align-items: center;
+                gap: 3px;
+            }
+
+            .quality-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background-color: #ddd;
+            }
+
+            .quality-high .quality-dot:nth-child(-n+4) {
+                background-color: var(--success-color);
+            }
+
+            .quality-medium .quality-dot:nth-child(-n+3) {
+                background-color: var(--warning-color);
+            }
+
+            .quality-low .quality-dot:nth-child(-n+2) {
+                background-color: var(--danger-color);
+            }
+
+            /* Timer animation */
+            @keyframes timerPulse {
+                0% {
+                    opacity: 1;
+                    text-shadow: 0 0 10px rgba(14, 165, 233, 0.3);
+                }
+                50% {
+                    opacity: 0.8;
+                    text-shadow: 0 0 20px rgba(14, 165, 233, 0.6);
+                }
+                100% {
+                    opacity: 1;
+                    text-shadow: 0 0 10px rgba(14, 165, 233, 0.3);
+                }
+            }
+
+            .timer-active {
+                animation: timerPulse 1.5s infinite;
+                font-weight: bold;
+                color: var(--success-color);
+            }
+
+            /* Glassmorphism effects */
+            .glass-effect {
+                background: rgba(17, 24, 39, 0.7);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+
+            /* Glow effects */
+            .glow-text {
+                text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+            }
+
+            .glow-border {
+                box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+                border: 1px solid rgba(59, 130, 246, 0.3);
+            }
+
+            /* Toggle Switch */
+            .switch {
+                position: relative;
+                display: inline-block;
+                width: 60px;
+                height: 34px;
+            }
+
+            .switch input {
+                opacity: 0;
+                width: 0;
+                height: 0;
+            }
+
+            .slider {
+                position: absolute;
+                cursor: pointer;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: #ccc;
+                transition: .4s;
+                border-radius: 34px;
+            }
+
+            .slider:before {
+                position: absolute;
+                content: "";
+                height: 26px;
+                width: 26px;
+                left: 4px;
+                bottom: 4px;
+                background-color: white;
+                transition: .4s;
+                border-radius: 50%;
+            }
+
+            input:checked + .slider {
+                background-color: var(--success-color);
+            }
+
+            input:focus + .slider {
+                box-shadow: 0 0 1px var(--success-color);
+            }
+
+            input:checked + .slider:before {
+                transform: translateX(26px);
+            }
+        </style>
+
+        <!-- Statistics Card -->
+        <div class="col-12 mt-2">
+            <div class="control-card">
+                <div class="card-header">
+                    <i class="fas fa-chart-line text-primary"></i>
+                    <h5 class="card-title">Estatísticas</h5>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-3 col-6">
+                        <div class="stat-card">
+                            <div class="stat-title">Total</div>
+                            <div class="stat-value" id="remaignsCalls">...</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="stat-card">
+                            <div class="stat-title">Discados</div>
+                            <div class="stat-value" id="callsFeitas">...</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="stat-card">
+                            <div class="stat-title">Ativos</div>
+                            <div class="stat-value" id="currentsCalls">...</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="stat-card">
+                            <div class="stat-title">Capturados</div>
+                            <div class="stat-value" id="refers">...</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+
+        <!-- Modal para definir as ações das teclas -->
+        <div class="modal" id="modal-definir-tecla">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Definir Ação da Tecla</h5>
+                        <button aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="config-group">
+                            <label>Selecione uma Tecla:</label>
+                            <div class="d-flex flex-wrap" id="tecla-options">
+                                <!-- Botões das teclas de 0 a 9 serão inseridos aqui -->
+                            </div>
+                        </div>
+                        <div class="config-group mt-3">
+                            <label for="tecla-acao"><i class="fas fa-tasks"></i> Ação:</label>
+                            <select class="form-control" id="tecla-acao">
+                                <option value="desligar">Desligar</option>
+                                <option value="audio">Áudio</option>
+                                <option value="encaminhar">Transferir para grupo de agentes</option>
+                            </select>
+                        </div>
+                        <div class="additional-options" id="additional-options"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-primary" id="salvar-tecla-acao">Salvar Ação</button>
+                        <button class="close-modal btn btn-secondary" id="fechar-modal">Fechar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bootstrap JS and dependencies -->
+
+    </div>
+    <div class=" col-sm-6 mb-sm-0">
+
+        <div class="bg-dark card text-blue">
+            <div class="card-header">
+                <h5><i class="fa-duotone fa-solid fa-phone-intercom"></i> <span class="text-white">Configuração de chamada</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="">
+                    <input accept="audio/*" class="form-control" id="audio-arquivo" style="display: none"
+                           type="file">
+
+                    <!-- botão para enviar arquivo de áudio -->
+                    <div class="text-lg-start">
+                        <label class="btn btn-warning" for="audio-arquivo">
+                            <i class="fas fa-music"></i> Novo Som
+                        </label>
+                        <button class="btn btn-primary btn-block" id="definir-tecla">
+                            <i class="fa-light fa-mobile-retro"></i> Teclas
+                        </button>
+                    </div>
+                </div>
+                <!-- lista dos arquivos de áudio usando li -->
+                <label class="form-label mt-4" for="listSounds">Áudios Disponíveis</label>
+                <ul class="list-group" id="listSounds" style="max-height: 300px; overflow-y: auto; border: none">
+
+                </ul>
+
+
+            </div>
+
+
+        </div>
+        <div class="col-12 mt-2">
+            <div class="control-card">
+                <div class="card-header">
+                    <i class="fas fa-chart-line text-primary"></i>
+                    <h5 class="card-title">Funções ao digitar</h5>
+                </div>
+                <!-- div rolavel para mostrar as ações das teclas sem a barra de rolagem do lado -->
+                <div style="max-height: 250px; overflow-y: auto; border-radius: 4px;border: none; --bs-scroll-height: 100%; --bs-scroll-width: 100%;">
+                    <ul class="list-group" id="lista-acoes-teclas">
+                        <li class="text-center">Nenhuma ação definida</li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+    window.isPlaying = false;
+    window.definirTeclaButton = document.getElementById('definir-tecla');
+    window.fecharModalButton = document.getElementById('fechar-modal');
+    window.teclaAcaoSelect = document.getElementById('tecla-acao');
+    window.teclaOptionsContainer = document.getElementById('tecla-options');
+    window.additionalOptionsContainer = document.getElementById('additional-options');
+    window.teclaSelecionada = 0;
+    window.teclasDefinidas = {};
+    window.selectTecla = (tecla) => {
+        teclaSelecionada = tecla;
+        renderTeclaOptions();
+    }
+    window.loadGroups = async () => {
+        const response = await fetch('listQueues', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                authToken: (new UserManager).getValue('token')
+            })
+        });
+        const data = await response.json();
+        return Object.keys(data)
+    }
+    window.listAudios = async () => {
+        const response = await fetch('/listAudios', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({authToken: new UserManager().getValue('token')})
+        });
+        const data = await response.json();
+        if (data.error) return toast('Erro ao listar áudios', 'Erro', 5000, 'error');
+        const listSounds = document.getElementById('listSounds');
+        $('#listSounds').empty();
+        if (!data['audios']) return toast('Nenhum áudio encontrado', 'Info', 5000, 'info');
+        let availableSounds = data['audios'];
+        availableSounds.forEach(sound => {
+            const li = document.createElement('li');
+            li.style.border = 'none';
+            li.className = 'list-group-item mt-1 d-flex justify-content-between align-items-center bg-dark text-light';
+
+            const soundName = document.createElement('span');
+            const ext = sound.split('.').pop();
+            const maxLength = 25;
+            soundName.textContent = sound;
+            const btnPlay = document.createElement('button');
+            btnPlay.className = 'btn btn-primary btn-sm mx-1';
+            const icon = document.createElement('i');
+            icon.className = 'fas fa-play';
+            btnPlay.appendChild(icon);
+            btnPlay.onclick = () => {
+                if (isPlaying) {
+                    audio.pause();
+                    isPlaying = false;
+                    icon.className = 'fas fa-play';
+                    return;
+                } else {
+                    isPlaying = true;
+                }
+                audio = new Audio(`getSound?token=${new UserManager().getValue('token')}&sound=${sound}`);
+                audio.play();
+                icon.className = 'fas fa-stop';
+                audio.onended = () => {
+                    icon.className = 'fas fa-play';
+                    isPlaying = false;
+                };
+            };
+
+            const btnDelete = document.createElement('button');
+            btnDelete.className = 'btn btn-danger btn-sm';
+            btnDelete.innerHTML = '<i class="fas fa-trash"></i>';
+            btnDelete.onclick = () => {
+                fetch(`/deleteSound`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({authToken: new UserManager().getValue('token'), sound: sound})
+                }).then(response => {
+                    if (response.ok) {
+                        listSounds.removeChild(li);
+                        toast('Áudio excluído com sucesso!', 'Sucesso', 3000, 'danger');
+                        window.listAudios();
+                    } else {
+                        toast('Erro ao excluir o áudio.', 'Erro', 3000, 'error');
+                    }
+                });
+            };
+
+            const endButtons = document.createElement('div');
+            endButtons.className = 'd-flex';
+            endButtons.appendChild(btnPlay);
+            endButtons.appendChild(btnDelete);
+
+            li.appendChild(soundName);
+            li.appendChild(endButtons);
+            listSounds.appendChild(li);
+        });
+        $('#audio-principal').empty();
+        availableSounds.forEach(sound => {
+            $('#audio-principal').append(`<option value="${sound}">${sound}</option>`);
+        });
+
+    }
+    window.listPhonesLists = async () => {
+        const response = await fetch('/listPhonesLists', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({authToken: new UserManager().getValue('token')})
+        });
+        const data = await response.json();
+        if (data.error) return toast('Erro ao listar listas de telefones', 'Erro', 5000, 'error');
+        const listPhones = document.getElementById('listPhones');
+        $('#listPhones').empty();
+        if (!data['lists']) return toast('Nenhuma lista de telefones encontrada', 'Info', 5000, 'info');
+        let availableLists = data['lists'];
+        for (let i = 0; i < availableLists.length; i++) {
+            const list = availableLists[i];
+            const option = document.createElement('option');
+            option.textContent = list;
+            listPhones.appendChild(option);
+        }
+    }
+    window.getConfigCampaign = async () => {
+        const response = await fetch('/getConfigCampaign', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({authToken: new UserManager().getValue('token')})
+        });
+        const data = await response.json();
+        await window.listAudios();
+        await window.listPhonesLists();
+
+
+        if (data.error) return toast('Erro ao obter configuração da campanha', 'Erro', 5000, 'error');
+        const config = data['config'];
+        document.getElementById('vSimultaneousCalls').textContent = config['simultaneousCalls'];
+        document.getElementById('simultaneousCalls').value = config['simultaneousCalls'];
+        document.getElementById('vwaitsig').textContent = config['awaitSignal'];
+        document.getElementById('awaitSignal').value = config['awaitSignal'];
+        document.getElementById('audio-principal').value = config['mainAudio'];
+        // phonesList
+        document.getElementById('listPhones').value = config['phonesList'];
+
+
+        document.getElementById('lista-acoes-teclas').innerHTML = '';
+
+        const teclasDefinidas = data['dtmfMap'];
+
+        const listaAcoesTeclas = document.getElementById('lista-acoes-teclas');
+        listaAcoesTeclas.innerHTML = '';
+        listaAcoesTeclas.style.border = 'none';
+        for (const [tecla, action] of Object.entries(teclasDefinidas)) {
+            const li = document.createElement('li');
+            li.style.border = 'none';
+            li.className = 'list-group-item mt-1 d-flex justify-content-between align-items-center bg-dark text-light';
+            const actionText = document.createElement('span');
+            let actionType = action.type;
+            if (actionType === 'audio') {
+                actionType = `<i class="fas fa-music"></i>`;
+            } else if (actionType === 'close') {
+                actionType = `<i class="fas fa-phone-slash"></i> Desligar`;
+            } else if (actionType === 'transfer') {
+                actionType = `<i class="fa-duotone fa-regular fa-user-headset"></i> Transferir ao grupo: (${action.group})`;
+
+            }
+
+
+            actionText.innerHTML = `Tecla <span class="badge bg-primary rounded-pill">${tecla}</span> : ${(action.type === 'close') ? actionType : actionType}${action.file ? ` ${action.file.includes('audio:') ? action.file.split('audio:')[1] : action.file}` : ''}`;
+
+
+            const btnDelete = document.createElement('button');
+            btnDelete.className = 'btn btn-danger btn-sm';
+            btnDelete.innerHTML = '<i class="fas fa-trash"></i>';
+            btnDelete.onclick = () => {
+                delete teclasDefinidas[tecla];
+                listaAcoesTeclas.removeChild(li);
+
+                fetch('/deleteAction', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        tecla: tecla,
+                        authToken: new UserManager().getValue('token')
+                    })
+                }).then(response => {
+                    if (response.ok) {
+                        toast('Ação da tecla excluída com sucesso', 'Sucesso', 5000, 'success');
+                        window.getConfigCampaign();
+                    } else {
+                        toast('Erro ao excluir ação da tecla', 'Erro', 5000, 'error');
+                    }
+                });
+            };
+
+            li.appendChild(actionText);
+            li.appendChild(btnDelete);
+            listaAcoesTeclas.appendChild(li);
+        }
+        if (Object.keys(teclasDefinidas).length === 0) {
+            listaAcoesTeclas.innerHTML = `
+                <div class="alert alert-info mt-2" role="alert">
+                    <i class="fas fa-info-circle"></i> Nenhuma tecla foi definida ainda. 
+                    Use o botão "Teclas" para configurar as ações das teclas.
+                </div>`;
+        }
+        let startCampaign = document.getElementById('startCampaign');
+        let resetCampaign = document.getElementById('resetCampaign');
+        let campaignStatus = document.getElementById('campaignStatus');
+        if (data['running']) {
+            campaignStatus.innerHTML = `<span class="spinner-grow text-success" style="width: 1.5rem; height: 1.5rem;"></span> <span class="text-white">Campanha Ativa</span>`;
+            startCampaign.className = 'btn btn-primary text-light';
+            startCampaign.innerHTML = '<i class="fas fa-pause"></i> Pausar';
+        } else {
+            // <i class="fa-sharp-duotone fa-regular fa-circle-pause"></i>
+            campaignStatus.innerHTML = `<span class="text-white"><i class="text-blue fa-sharp-duotone fa-regular fa-circle-pause"></i> Campanha Pausada</span>`;
+            startCampaign.className = 'btn btn-success';
+            startCampaign.innerHTML = '<i class="fas fa-play"></i> Iniciar';
+        }
+    }
+    window.renderTeclaOptions = () => {
+        teclaOptionsContainer.innerHTML = '';
+        for (let i = 0; i <= 9; i++) {
+            const button = document.createElement('button');
+            button.className = `btn m-1 ${teclasDefinidas[i] ? 'btn-available' : 'btn-available'} ${teclaSelecionada === i ? 'btn-selected' : ''}`;
+            button.textContent = i;
+            button.dataset.tecla = i;
+            button.onclick = () => selectTecla(i);
+            teclaOptionsContainer.appendChild(button);
+        }
+    }
+    window.renderAdditionalOptions = async () => {
+        additionalOptionsContainer.innerHTML = '';
+        const selectedAction = teclaAcaoSelect.value;
+        if (selectedAction === 'audio') {
+            const audioSelect = document.createElement('select');
+            audioSelect.style.marginTop = '10px'
+            audioSelect.className = 'form-control';
+            audioSelect.id = 'audio-select';
+            const audios = document.getElementById('listSounds').children;
+            for (let i = 0; i < audios.length; i++) {
+                const audio = audios[i].children[0].textContent;
+                const option = document.createElement('option');
+                option.value = audio;
+                option.textContent = audio;
+                audioSelect.appendChild(option);
+            }
+            additionalOptionsContainer.appendChild(audioSelect);
+            console.log('audioSelect');
+
+
+        } else if (selectedAction === 'encaminhar') {
+            const groupsSelect = document.createElement('select');
+            groupsSelect.style.marginTop = '10px'
+            groupsSelect.className = 'form-control';
+            groupsSelect.id = 'groups-select';
+            const groups = await window.loadGroups()
+            for (let i = 0; i < groups.length; i++) {
+                const groupName = groups[i];
+                const option = document.createElement('option');
+                option.value = groupName;
+                option.textContent = groupName;
+                groupsSelect.appendChild(option);
+            }
+            additionalOptionsContainer.appendChild(groupsSelect);
+            console.log('groupSelect');
+        }
+    }
+    document.getElementById('startCampaign').onclick = async () => {
+        const response = await fetch('/startCampaign', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({authToken: new UserManager().getValue('token')})
+        });
+        const data = await response.json();
+        if (data.error) return toast('Erro ao iniciar a campanha', 'Erro', 5000, 'error');
+        let startCampaign = document.getElementById('startCampaign');
+        console.log(`"${startCampaign.innerText}"`);
+        if (startCampaign.innerText === ' Iniciar') {
+            toast('Campanha iniciada', 'Processo iniciado', 5000, 'success');
+        } else if (startCampaign.innerText === ' Pausar') {
+            toast('Campanha pausada', 'Processo pausado', 5000, 'info');
+        }
+        await window.getConfigCampaign();
+    }
+    document.getElementById('resetCampaign').onclick = async () => {
+        const response = await fetch('/resetCampaign', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({authToken: new UserManager().getValue('token')})
+        });
+        const data = await response.json();
+        if (data.error) return toast('Erro ao reiniciar a campanha', 'Erro', 5000, 'error');
+        toast('Campanha reiniciada', 'Sucesso', 5000, 'success');
+        await window.getConfigCampaign();
+    }
+    document.getElementById('audio-principal').onchange = async () => {
+        const response = await fetch('/setMainAudio', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                authToken: new UserManager().getValue('token'),
+                audio: document.getElementById('audio-principal').value
+            })
+        });
+        const data = await response.json();
+        if (data.error) return toast('Erro ao definir áudio principal', 'Erro', 5000, 'error');
+        toast('Áudio principal definido com sucesso', 'Sucesso', 5000, 'success');
+    }
+    document.getElementById('listPhones').onchange = async () => {
+        const response = await fetch('/setPhonesList', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                authToken: new UserManager().getValue('token'),
+                list: document.getElementById('listPhones').value
+            })
+        });
+        const data = await response.json();
+        if (data.error) return toast('Erro ao definir lista de telefones', 'Erro', 5000, 'error');
+        toast('Lista de telefones definida com sucesso', 'Sucesso', 5000, 'success');
+    }
+    document.getElementById('awaitSignal').onchange = () => {
+        document.getElementById('vwaitsig').textContent = document.getElementById('awaitSignal').value;
+        fetch('/setAwaitSignal', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                authToken: new UserManager().getValue('token'),
+                awaitSignal: document.getElementById('awaitSignal').value
+            })
+        }).then(response => {
+            if (response.ok) {
+                toast('Tempo máximo de espera definido com sucesso', 'Sucesso', 5000, 'success');
+            } else {
+                toast('Erro ao definir tempo máximo de espera', 'Erro', 5000, 'error');
+            }
+        });
+    }
+    document.getElementById('awaitSignal').oninput = () => {
+        document.getElementById('vwaitsig').textContent = document.getElementById('awaitSignal').value;
+    }
+    document.getElementById('audio-arquivo').onchange = async () => {
+        const file = document.getElementById('audio-arquivo').files[0];
+        const formData = new FormData();
+        formData.append('audio', file);
+        formData.append('authToken', new UserManager().getValue('token'));
+        const response = await fetch('/uploadSound', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        if (data.error) return toast('Erro ao enviar áudio', 'Erro', 5000, 'error');
+        toast('Áudio enviado com sucesso', 'Sucesso', 5000, 'success');
+        await window.listAudios();
+    }
+    document.getElementById('salvar-tecla-acao').onclick = async () => {
+        const selectedAction = teclaAcaoSelect.value;
+        const selectedTecla = teclaSelecionada;
+        const additionalOptions = additionalOptionsContainer.children;
+        let action = {type: selectedAction};
+        if (selectedAction === 'audio') {
+            action.file = additionalOptions[0].value;
+        } else if (selectedAction === 'encaminhar') {
+            action.group = additionalOptions[0].value;
+        }
+
+        teclasDefinidas[selectedTecla] = action;
+        const response = await fetch('/setAction', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                authToken: new UserManager().getValue('token'),
+                tecla: selectedTecla,
+                action: action
+            })
+        });
+        const data = await response.json();
+        if (data.error) return toast('Erro ao definir ação da tecla', 'Erro', 5000, 'error');
+        toast('Ação da tecla definida com sucesso', 'Sucesso', 5000, 'success');
+        $('#modal-definir-tecla').modal('hide');
+        await window.getConfigCampaign();
+    }
+    document.getElementById('simultaneousCalls').onchange = () => {
+        document.getElementById('vSimultaneousCalls').textContent = document.getElementById('simultaneousCalls').value;
+        const response = fetch('/setSimultaneousCalls', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                authToken: new UserManager().getValue('token'),
+                simultaneousCalls: document.getElementById('simultaneousCalls').value
+            })
+        }).then(response => {
+            if (response.ok) {
+                toast('Número de chamadas simultâneas definido com sucesso', 'Sucesso', 5000, 'success');
+            } else {
+                toast('Erro ao definir número de chamadas simultâneas', 'Erro', 5000, 'error');
+            }
+        });
+    }
+    document.getElementById('simultaneousCalls').oninput = () => {
+        document.getElementById('vSimultaneousCalls').textContent = document.getElementById('simultaneousCalls').value;
+    }
+    document.getElementById('deleteList').onclick = async () => {
+        const response = await fetch('/deletePhonesList', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                authToken: new UserManager().getValue('token'),
+                list: document.getElementById('listPhones').value
+            })
+        });
+        const data = await response.json();
+        if (data.error) return toast('Erro ao excluir lista de telefones', 'Erro', 5000, 'error');
+        toast('Lista de telefones excluída com sucesso', 'Sucesso', 5000, 'success');
+        await window.listPhonesLists();
+        await window.getConfigCampaign();
+    }
+    document.getElementById('phoneUpload').onchange = async () => {
+        const file = document.getElementById('phoneUpload').files[0];
+        const formData = new FormData();
+        formData.append('phonesList', file);
+        formData.append('authToken', new UserManager().getValue('token'));
+        const response = await fetch('/uploadPhonesList', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        if (data.error) return toast('Erro ao enviar lista de telefones', 'Erro', 5000, 'error');
+        toast('Lista de telefones enviada com sucesso', 'Sucesso', 5000, 'success');
+        await window.listPhonesLists();
+        await window.getConfigCampaign();
+    }
+    definirTeclaButton.addEventListener('click', () => {
+        $('#modal-definir-tecla').modal('show');
+        renderTeclaOptions();
+    });
+    fecharModalButton.addEventListener('click', () => {
+        $('#modal-definir-tecla').modal('hide');
+        window.listPhonesLists();
+        window.getConfigCampaign();
+    });
+    teclaAcaoSelect.addEventListener('change', () => renderAdditionalOptions());
+    window.listAudios();
+    window.listPhonesLists();
+    window.getConfigCampaign();
+</script>

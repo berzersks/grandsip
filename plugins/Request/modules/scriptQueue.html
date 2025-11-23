@@ -1,0 +1,481 @@
+<script>
+    // Função para exibir notificações de sistema
+    window.showNotification = (message, type = 'info') => {
+        return toast(message, 'Aviso', 5000, type)
+    }
+
+    // Função para obter contas do servidor
+    window.getAccounts = async () => {
+        let endpointUrl = 'accountsList';
+        return await fetch(endpointUrl, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                authToken: (new UserManager).getValue('token')
+            })
+        }).then(res => res.json());
+    }
+
+    // Função para configurar a lista de contas/agentes
+    window.modalSetupAccounts = async () => {
+        let agentsListEl = $('#agentsList');
+        let sipAccounts = await getAccounts();
+        let onlineUsers = await sendRecByToken({token: (new UserManager).getValue('token')}, 'connectionsOnline');
+
+        // Limpar e preencher a lista de agentes
+        agentsListEl.html('');
+        sipAccounts.forEach(account => {
+            let placeStatus = ` <span class="badge bg-danger">Desconectado</span>`;
+            let placeAddress = '?';
+            if (Object.keys(onlineUsers).includes(account.u)) {
+                placeStatus = ` <span class="badge bg-success">Conectado ao servidor</span>`;
+                placeAddress = onlineUsers[account.u]['address'];
+                placeAddress += ':' + onlineUsers[account.u]['port'];
+            }
+            agentsListEl.html(
+                agentsListEl.html() +
+                `<tr class="table-row">
+    <td>
+        <div class="form-check">
+            <input class="form-check-input agent-checkbox" type="checkbox"
+                   id="input-id${account.u}" data-agent-id="${account.u}" checked>
+            <label class="form-check-label" for="input-id${account.u}">
+                <span class="visually-hidden">Selecionar ${account.u}</span>
+            </label>
+        </div>
+    </td>
+    <td>
+        <span class="badge rounded-pill badge-extension">${account.u}</span>
+    </td>
+    <td>${placeAddress}</td>
+    <td>
+       ${placeStatus}
+    </td>
+</tr>`
+            )
+        });
+    }
+
+    // Inicializar a lista de contas ao carregar
+    modalSetupAccounts();
+    // Configurar o checkbox para selecionar todos os agentes
+    const checkAllAgents = document.getElementById('checkAllAgents');
+    const selectAllAgents = document.getElementById('selectAllAgents');
+
+    if (selectAllAgents) {
+        selectAllAgents.addEventListener('change', function () {
+            const agentCheckboxes = document.querySelectorAll('.agent-checkbox');
+            agentCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+        });
+    }
+    if (checkAllAgents) {
+        checkAllAgents.addEventListener('change', function () {
+            const agentCheckboxes = document.querySelectorAll('.agent-checkbox');
+            agentCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+        });
+    }
+    // Função para listar todos os grupos
+    window.loadGroups = async () => {
+        try {
+            const response = await fetch('listQueues', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    authToken: (new UserManager).getValue('token')
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Erro ao carregar grupos');
+            }
+
+            const data = await response.json();
+            console.log('Grupos carregados:', data);
+
+            if (data.error) {
+                return showNotification(data.error, 'danger');
+            }
+
+            const groupsList = document.getElementById('groupsList');
+
+            // Verificar se o objeto está vazio
+            if (Object.keys(data).length === 0) {
+                groupsList.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-4">
+                            <i class="fas fa-info-circle fa-2x text-muted mb-3"></i>
+                            <p class="text-muted">Nenhum grupo encontrado. Clique em "Novo Grupo de Discagem" para criar.</p>
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            groupsList.innerHTML = '';
+
+            // Iterar sobre o objeto de grupos onde as chaves são os nomes
+            Object.entries(data).forEach(([groupName, group]) => {
+                const priorityLabels = {
+                    '1': '<span class="badge bg-secondary">Baixa</span>',
+                    '2': '<span class="badge bg-primary">Normal</span>',
+                    '3': '<span class="badge bg-warning">Alta</span>',
+                    '4': '<span class="badge bg-danger">Urgente</span>'
+                };
+
+                const typeLabels = {
+                    'outbound': '<span class="badge" style="background-color: #4e7df7">Discagem Ativa</span>',
+                    'inbound': '<span class="badge" style="background-color: #28a745">Recebimento</span>',
+                    'mixed': '<span class="badge" style="background-color: #8d65ff">Misto</span>'
+                };
+
+                // Verificar se há data de atualização e convertê-la para formato amigável
+                const updatedDate = group.updatedAt ? new Date(group.updatedAt) : null;
+                const formattedDate = updatedDate ? 
+                    `${updatedDate.toLocaleDateString('pt-BR')} ${updatedDate.toLocaleTimeString('pt-BR')}` : 
+                    'N/A';
+
+                // Se não houver um status explícito, assumir que está ativo
+                const statusBadge = '<span class="badge bg-success">Ativo</span>';
+
+                groupsList.innerHTML += `
+                    <tr data-group-name="${groupName}" class="group-row">
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="group-color-indicator" style="width: 12px; height: 12px; border-radius: 50%; background-color: ${getColorCode(group.color)}; margin-right: 10px;"></div>
+                                <span class="group-name">${groupName}</span>
+                            </div>
+                        </td>
+                        <td>${typeLabels[group.type] || group.type}</td>
+                        <td>${priorityLabels[group.priority] || group.priority}</td>
+                        <td>
+                            <span class="badge bg-info">${group.agents.length} agentes</span>
+                        </td>
+                        <td>
+                            ${statusBadge}
+                            <small class="d-block text-white" style="font-size: 0.75rem">Atualizado: ${formattedDate}</small>
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-outline-primary edit-group" data-group-name="${groupName}" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger delete-group" data-group-name="${groupName}" title="Excluir">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>`;
+            });
+
+            // Adicionar event listeners para os botões de editar e excluir
+            addGroupActionListeners();
+
+        } catch (error) {
+            console.error('Erro ao carregar grupos:', error);
+            showNotification('Erro ao carregar a lista de grupos: ' + error.message, 'danger');
+        }
+    };
+
+    // Função para obter código de cor baseado no nome
+    function getColorCode(colorName) {
+        const colorMap = {
+            'blue': '#4e7df7',
+            'purple': '#8d65ff',
+            'cyan': '#17a2b8',
+            'green': '#28a745',
+            'orange': '#fd7e14',
+            'red': '#dc3545'
+        };
+
+        return colorMap[colorName] || '#4e7df7';
+    }
+
+    // Função para adicionar event listeners aos botões de ação
+    function addGroupActionListeners() {
+        // Event listeners para botões de editar
+        document.querySelectorAll('.edit-group').forEach(button => {
+            button.addEventListener('click', function () {
+                const groupName = this.getAttribute('data-group-name');
+                editGroup(groupName);
+            });
+        });
+
+        // Event listeners para botões de excluir
+        document.querySelectorAll('.delete-group').forEach(button => {
+            button.addEventListener('click', function () {
+                const groupName = this.getAttribute('data-group-name');
+                deleteGroup(groupName);
+            });
+        });
+    }
+
+    // Função para editar um grupo
+    async function editGroup(groupName) {
+        try {
+            // Obter a lista completa de grupos
+            const response = await fetch('listQueues', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    authToken: (new UserManager).getValue('token')
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Erro ao carregar grupos');
+            }
+
+            const data = await response.json();
+
+            if (data.error) {
+                return showNotification(data.error, 'danger');
+            }
+
+            // Verificar se o grupo existe
+            if (!data[groupName]) {
+                return showNotification('Grupo não encontrado', 'danger');
+            }
+
+            const groupData = data[groupName];
+
+            // Preencher o formulário com os dados do grupo
+            document.getElementById('titleGroupModal').innerHTML = 'Editar Grupo (' + groupName + ')';
+            document.getElementById('groupName').value = groupName;
+            document.getElementById('groupType').value = groupData.type;
+            document.getElementById('groupColor').value = groupData.color;
+            document.getElementById('groupPriority').value = groupData.priority;
+            document.getElementById('waitTime').value = groupData.config.waitTime;
+            document.getElementById('retryTime').value = groupData.config.retryTime;
+
+            // Atualizar a lista de agentes
+            await modalSetupAccounts();
+
+            // Marcar apenas os agentes que fazem parte do grupo
+            document.querySelectorAll('.agent-checkbox').forEach(checkbox => {
+                const agentId = checkbox.getAttribute('data-agent-id');
+                checkbox.checked = groupData.agents.includes(agentId);
+            });
+
+            // Atualizar o botão de salvar para edição
+            const saveButton = document.getElementById('saveGroupBtn');
+            saveButton.setAttribute('data-group-name', groupName);
+            saveButton.innerHTML = '<i class="fas fa-save me-2"></i>Atualizar Grupo';
+
+            // Exibir o modal
+            const modal = new bootstrap.Modal(document.getElementById('createGroupModal'));
+            modal.show();
+
+        } catch (error) {
+            console.error('Erro ao carregar detalhes do grupo:', error);
+            showNotification('Erro ao carregar detalhes do grupo: ' + error.message, 'danger');
+        }
+    }
+
+    // Função para excluir um grupo
+    function deleteGroup(groupName) {
+        // Confirmar exclusão
+        if (!confirm(`Tem certeza que deseja excluir o grupo "${groupName}"? Esta ação não pode ser desfeita.`)) {
+            return;
+        }
+
+        // Mostrar notificação de processamento
+        showNotification('Excluindo grupo...', 'info');
+
+        // Enviar solicitação para excluir o grupo
+        fetch('deleteQueue', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                authToken: (new UserManager).getValue('token'),
+                queueName: groupName
+            })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro ao excluir o grupo');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    return showNotification(data.error, 'danger');
+                }
+
+                // Exibir mensagem de sucesso
+                showNotification('Grupo excluído com sucesso!', 'success');
+
+                // Recarregar a lista de grupos
+                loadGroups();
+            })
+            .catch(error => {
+                console.error('Erro ao excluir grupo:', error);
+                showNotification('Erro ao excluir o grupo: ' + error.message, 'danger');
+            });
+    }
+
+    // Carregar a lista de grupos quando a página for carregada
+    document.addEventListener('DOMContentLoaded', function () {
+        // Verificar se estamos na página de gerenciamento de grupos
+        if (document.getElementById('groupsList')) {
+            loadGroups();
+        }
+    });
+
+    // Resetar o formulário quando o modal for fechado
+    document.getElementById('createGroupModal').addEventListener('hidden.bs.modal', function () {
+        document.getElementById('titleGroupModal').innerHTML = 'Novo Grupo de agentes';
+        document.getElementById('groupForm').reset();
+        document.getElementById('saveGroupBtn').removeAttribute('data-group-name');
+        document.getElementById('saveGroupBtn').innerHTML = '<i class="fas fa-save me-2"></i>Salvar Grupo';
+    });
+
+    document.getElementById('saveGroupBtn').addEventListener('click', function () {
+        // Iniciar validação dos campos
+        let isValid = true;
+        let errorMessages = [];
+
+        // Obter valores dos campos
+        const groupName = document.getElementById('groupName').value.trim();
+        const groupType = document.getElementById('groupType').value;
+        const groupColor = document.getElementById('groupColor').value;
+        const groupPriority = document.getElementById('groupPriority').value;
+        const waitTime = document.getElementById('waitTime').value;
+        const retryTime = document.getElementById('retryTime').value;
+
+        // Validar campos obrigatórios
+        if (!groupName) {
+            isValid = false;
+            errorMessages.push('Nome da fila é obrigatório');
+            document.getElementById('groupName').classList.add('is-invalid');
+        } else {
+            document.getElementById('groupName').classList.remove('is-invalid');
+        }
+
+        if (!groupType || groupType === '') {
+            isValid = false;
+            errorMessages.push('Tipo da fila é obrigatório');
+            document.getElementById('groupType').classList.add('is-invalid');
+        } else {
+            document.getElementById('groupType').classList.remove('is-invalid');
+        }
+
+        // Coletar agentes selecionados
+        let agentsListEl = $('#agentsList');
+        let selectedAgents = [];
+        agentsListEl.find('.agent-checkbox:checked').each(function () {
+            selectedAgents.push($(this).attr('data-agent-id'));
+        });
+
+        // Validar se pelo menos um agente foi selecionado
+        if (selectedAgents.length === 0) {
+            isValid = false;
+            errorMessages.push('Selecione pelo menos um agente');
+            showNotification('Selecione pelo menos um agente para a fila', 'warning');
+        }
+
+
+        if (waitTime < 10 || waitTime > 120) {
+            isValid = false;
+            errorMessages.push('Tempo de espera deve estar entre 10 e 120 segundos');
+            document.getElementById('waitTime').classList.add('is-invalid');
+        } else {
+            document.getElementById('waitTime').classList.remove('is-invalid');
+        }
+
+        if (retryTime < 5 || retryTime > 1440) {
+            isValid = false;
+            errorMessages.push('Tempo para retry deve estar entre 5 e 1440 minutos');
+            document.getElementById('retryTime').classList.add('is-invalid');
+        } else {
+            document.getElementById('retryTime').classList.remove('is-invalid');
+        }
+
+        // Se houver erros, mostrar mensagem e interromper
+        if (!isValid) {
+            showNotification('Por favor, corrija os erros no formulário', 'danger');
+            console.error('Erros de validação:', errorMessages);
+            return;
+        }
+
+        // Construir objeto de dados para envio
+        const groupData = {
+            name: groupName,
+            type: groupType,
+            color: groupColor,
+            priority: parseInt(groupPriority),
+            agents: selectedAgents,
+            config: {
+                waitTime: parseInt(waitTime),
+                retryTime: parseInt(retryTime)
+            }
+        };
+
+        // Verificar se é uma edição ou um novo grupo
+        const isEdit = this.hasAttribute('data-group-name');
+        let oldGroupName = null;
+
+        if (isEdit) {
+            oldGroupName = this.getAttribute('data-group-name');
+        }
+
+        // Mostrar notificação de processamento
+        showNotification(isEdit ? 'Atualizando o grupo...' : 'Salvando a fila...', 'info');
+
+        // Enviar dados para o endpoint
+        fetch('saveQueue', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                authToken: (new UserManager).getValue('token'),
+                queueName: groupName,
+                queueData: {
+                    name: groupName,
+                    type: groupType,
+                    color: groupColor,
+                    oldQueueName: oldGroupName,
+                    priority: parseInt(groupPriority),
+                    agents: selectedAgents,
+                    config: {
+                        waitTime: parseInt(waitTime),
+                        retryTime: parseInt(retryTime)
+                    }
+                }
+            })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro ao salvar a fila');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    return showNotification(data.error, 'danger');
+                }
+                // Tratar resposta bem-sucedida
+                console.log('Fila salva com sucesso:', data);
+
+                // Verificar se é uma edição ou uma nova fila
+                const isEdit = this.hasAttribute('data-group-id');
+                showNotification(isEdit ? 'Grupo atualizado com sucesso!' : 'Grupo criado com sucesso!', 'success');
+
+                // Fechar o modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('createGroupModal'));
+                modal.hide();
+
+                // Atualizar a lista de filas
+                loadGroups();
+            })
+            .catch(error => {
+                // Tratar erro
+                console.error('Erro ao salvar fila:', error);
+                showNotification('Erro ao salvar a fila: ' + error.message, 'danger');
+            });
+    });
+    window.loadGroups();
+</script>

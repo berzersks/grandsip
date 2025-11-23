@@ -1,0 +1,790 @@
+<style>
+    .message-option {
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .message-option:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+
+    .message-option.selected {
+        border: 2px solid #f9ca24 !important;
+        background-color: rgba(249, 202, 36, 0.1);
+    }
+
+    .message-preview {
+        background: rgba(255,255,255,0.1);
+        border-left: 4px solid #f9ca24;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 15px;
+    }
+
+    .send-button {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        border: none;
+        box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        transition: all 0.3s ease;
+    }
+
+    .send-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+    }
+
+    .agent-group-card {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .stats-card {
+        background: linear-gradient(135deg, rgba(0,123,255,0.1), rgba(0,123,255,0.05));
+        border: 1px solid rgba(0,123,255,0.2);
+    }
+</style>
+
+<div class="container-fluid">
+
+    <div class="row g-4">
+
+        <!-- Mensagens Rápidas -->
+        <div class="col-lg-12">
+            <div class="card bg-dark border-0 shadow-lg h-100">
+                <div class="card-header bg-transparent border-bottom border-secondary">
+                    <h5 class="text-light mb-0">
+                        <i class="fas fa-lightning-bolt me-2 text-warning"></i>
+                        Mensagens Rápidas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 mb-4">
+                        <!-- Manutenção de Sistema -->
+                        <div class="col-md-6">
+                            <div class="message-option card bg-night h-100 border-0" data-message="**[MAINT] MANUTENCAO PROGRAMADA** - Atualizacao de infraestrutura VoIP agendada para hoje as **23h**. Duracao estimada: **30 minutos**. Recomendamos ajustar campanhas ativas.">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-server fa-2x text-warning mb-2"></i>
+                                    <h6 class="text-white mb-1">Manutenção VoIP</h6>
+                                    <p class="text-muted small mb-0">Infraestrutura em atualização</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Qualidade de Rede Superior -->
+                        <div class="col-md-6">
+                            <div class="message-option card bg-night h-100 border-0" data-message="**[INFO] REDE OTIMIZADA** - Latencia reduzida para **menos de 5ms**, jitter estabilizado. Qualidade de audio: **HD (G.722)**. Momento ideal para campanhas de alta conversao.">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-wifi fa-2x text-success mb-2"></i>
+                                    <h6 class="text-white mb-1">Rede Otimizada</h6>
+                                    <p class="text-muted small mb-0">Latência <5ms, HD Audio</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Problemas de Conectividade -->
+                        <div class="col-md-6">
+                            <div class="message-option card bg-night h-100 border-0" data-message="**[ALERT] INSTABILIDADE DETECTADA** - Perda de pacotes identificada em **15% das rotas**. Possivel degradacao de audio. Equipe tecnica investigando. Estimativa de normalizacao: **2h**.">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-exclamation-triangle fa-2x text-danger mb-2"></i>
+                                    <h6 class="text-white mb-1">Perda de Pacotes</h6>
+                                    <p class="text-muted small mb-0">Qualidade de áudio afetada</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Capacidade do Sistema -->
+                        <div class="col-md-6">
+                            <div class="message-option card bg-night h-100 border-0" data-message="**[WARN] ALTA DEMANDA** - Sistema operando em **85% da capacidade**. CPS limitado temporariamente. Considere distribuir campanhas ao longo do dia para melhor performance.">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-chart-line fa-2x text-warning mb-2"></i>
+                                    <h6 class="text-white mb-1">Alta Demanda</h6>
+                                    <p class="text-muted small mb-0">85% capacidade, CPS limitado</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Problemas de Registro SIP -->
+                        <div class="col-md-6">
+                            <div class="message-option card bg-night h-100 border-0" data-message="**[ERROR] FALHAS DE REGISTRO** - Detectadas falhas intermitentes no **registro SIP**. Verifique configuracoes de **NAT/Firewall**. Suporte tecnico disponivel para assistencia.">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-user-times fa-2x text-danger mb-2"></i>
+                                    <h6 class="text-white mb-1">Registro SIP</h6>
+                                    <p class="text-muted small mb-0">Falhas intermitentes</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Nova Funcionalidade -->
+                        <div class="col-md-6">
+                            <div class="message-option card bg-night h-100 border-0" data-message="**[UPDATE] NOVA FUNCIONALIDADE** - **Codec Opus** habilitado para melhor qualidade em baixa largura de banda. Ative nas configuracoes avancadas do softphone.">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-rocket fa-2x text-info mb-2"></i>
+                                    <h6 class="text-white mb-1">Codec Opus</h6>
+                                    <p class="text-muted small mb-0">Melhor qualidade/banda</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Atualização de Tarifas -->
+                        <div class="col-md-6">
+                            <div class="message-option card bg-night h-100 border-0" data-message="**[BILLING] TARIFAS ATUALIZADAS** - Novas rotas internacionais ativas com reducao de **ate 30%** nos custos. Consulte a tabela de tarifas atualizada no painel administrativo.">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-dollar-sign fa-2x text-success mb-2"></i>
+                                    <h6 class="text-white mb-1">Tarifas Reduzidas</h6>
+                                    <p class="text-muted small mb-0">Economia até 30%</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Problema de Carrier -->
+                        <div class="col-md-6">
+                            <div class="message-option card bg-night h-100 border-0" data-message="**[CRITICAL] CARRIER INSTAVEL** - Problemas identificados no **carrier XYZ** (ASR: **45%**). Trafego sendo redirecionado automaticamente. Monitoramento continuo ativo.">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-route fa-2x text-danger mb-2"></i>
+                                    <h6 class="text-white mb-1">Carrier Issues</h6>
+                                    <p class="text-muted small mb-0">ASR baixo, rota alternativa</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Certificados SSL -->
+                        <div class="col-md-6">
+                            <div class="message-option card bg-night h-100 border-0" data-message="**[SECURITY] CERTIFICADOS RENOVADOS** - Certificados **SSL/TLS** atualizados com sucesso. Todas as conexoes seguras **WebRTC** estao funcionando normalmente. Forca de criptografia: **AES-256**.">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-shield-alt fa-2x text-success mb-2"></i>
+                                    <h6 class="text-white mb-1">SSL Renovado</h6>
+                                    <p class="text-muted small mb-0">WebRTC seguro, AES-256</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Firewall e Segurança -->
+                        <div class="col-md-6">
+                            <div class="message-option card bg-night h-100 border-0" data-message="**[SECURITY] TENTATIVAS DE FRAUDE** - Sistema de seguranca bloqueou **1.247 tentativas** de fraude nas ultimas **24h**. Filtros **anti-fraud** ativos e funcionando corretamente.">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-ban fa-2x text-warning mb-2"></i>
+                                    <h6 class="text-white mb-1">Anti-Fraud Ativo</h6>
+                                    <p class="text-muted small mb-0">1.247 tentativas bloqueadas</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Redundância Ativada -->
+                        <div class="col-md-6">
+                            <div class="message-option card bg-night h-100 border-0" data-message="**[FAILOVER] REDUNDANCIA ATIVADA** - Sistema de redundancia acionado automaticamente devido a falha no **datacenter primario**. Operacao mantida **sem interrupcoes** via datacenter secundario.">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-sync-alt fa-2x text-info mb-2"></i>
+                                    <h6 class="text-white mb-1">Failover Ativo</h6>
+                                    <p class="text-muted small mb-0">Redundância sem interrupção</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Upgrade de Infraestrutura -->
+                        <div class="col-md-6">
+                            <div class="message-option card bg-night h-100 border-0" data-message="**[UPGRADE] INFRAESTRUTURA EXPANDIDA** - Capacidade de processamento aumentada em **40%**. Novos servidores SIP em operacao. CPS maximo elevado para **500 chamadas simultaneas**.">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-arrow-up fa-2x text-success mb-2"></i>
+                                    <h6 class="text-white mb-1">Upgrade +40%</h6>
+                                    <p class="text-muted small mb-0">CPS máximo: 500 chamadas</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                       <div class="mb-3">
+                        <label class="form-label text-white">Selecionar Grupo:</label>
+                        <select class="form-select bg-dark text-white border-secondary" id="agentGroup">
+                            <option value="">Selecione um grupo...</option>
+                            <option value="all">Todos os Agentes</option>
+                            <option value="online">Agentes Online</option>
+                            <option value="campaign1">Campanha Principal</option>
+                            <option value="campaign2">Campanha Secundária</option>
+                            <option value="supervisors">Supervisores</option>
+                            <option value="support">Suporte Técnico</option>
+                        </select>
+                    </div>
+
+                    <!-- Estatísticas do Grupo -->
+                    <div class="stats-card rounded p-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-white-50">Agentes Selecionados:</span>
+                            <span class="badge bg-primary" id="selectedAgentsCount">0</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-white-50">Online Agora:</span>
+                            <span class="badge bg-success" id="onlineAgentsCount">0</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-white-50">Última Mensagem:</span>
+                            <span class="text-white-50 small" id="lastMessageTime">Nunca</span>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Agentes Preview -->
+                    <div class="agent-group-card rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                        <h6 class="text-white mb-2">Agentes no Grupo:</h6>
+                        <div id="agentsList" class="text-muted small">
+                            Selecione um grupo para ver os agentes
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Composição de Mensagem -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card bg-dark border-0 shadow-lg">
+                <div class="card-header bg-transparent border-bottom border-secondary">
+                    <h5 class="text-light mb-0">
+                        <i class="fas fa-edit me-2 text-info"></i>
+                        Compor Mensagem
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-8">
+                            <div class="mb-3">
+                                <label class="form-label text-white">Mensagem:</label>
+                                <textarea 
+                                    class="form-control bg-dark text-white border-secondary" 
+                                    id="messageText" 
+                                    rows="4" 
+                                    placeholder="Digite sua mensagem personalizada aqui..." 
+                                    maxlength="500">
+                                </textarea>
+                                <div class="d-flex justify-content-between mt-1">
+                                    <small class="text-muted">Máximo 500 caracteres</small>
+                                    <small class="text-muted">
+                                        <span id="charCount">0</span>/500
+                                    </small>
+                                </div>
+                            </div>
+
+                            <!-- Opções Adicionais -->
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6" style="display: none">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="priorityMessage">
+                                        <label class="form-check-label text-white" for="priorityMessage">
+                                            <i class="fas fa-exclamation-circle text-warning me-1"></i>
+                                            Mensagem Prioritária
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6" style="display: none">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="soundAlert">
+                                        <label class="form-check-label text-white" for="soundAlert">
+                                            <i class="fas fa-volume-up text-info me-1"></i>
+                                            Alerta Sonoro
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Botões de Ação -->
+                            <div class="d-flex gap-3">
+                                <button class="btn send-button text-white px-4" id="sendMessage" disabled>
+                                    <i class="fas fa-paper-plane me-2"></i>
+                                    Enviar Mensagem
+                                </button>
+                                <button class="btn btn-outline-secondary px-4" id="clearMessage">
+                                    <i class="fas fa-eraser me-2"></i>
+                                    Limpar
+                                </button>
+                                <button class="btn btn-outline-info px-4" id="previewMessage" disabled>
+                                    <i class="fas fa-eye me-2"></i>
+                                    Pré-visualizar
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-4">
+                            <!-- Preview da Mensagem -->
+                            <div class="message-preview" id="messagePreview" style="display: none;">
+                                <h6 class="text-white mb-2">
+                                    <i class="fas fa-eye me-2"></i>Pré-visualização:
+                                </h6>
+                                <div class="bg-dark rounded p-3 border border-secondary">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="fas fa-user-circle text-primary me-2"></i>
+                                        <strong class="text-white small">Sistema</strong>
+                                        <small class="text-muted ms-auto" id="previewTime"></small>
+                                    </div>
+                                    <div class="text-white" id="previewText"></div>
+                                    <div class="mt-2" id="previewPriority" style="display: none;">
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="fas fa-exclamation-circle me-1"></i>Prioritária
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Histórico Recente -->
+                            <div class="mt-3">
+                                <h6 class="text-white mb-3">
+                                    <i class="fas fa-history me-2"></i>Últimas Mensagens:
+                                </h6>
+                                <div class="bg-dark rounded p-3 border border-secondary" style="max-height: 200px; overflow-y: auto;">
+                                    <div class="text-muted small" id="messageHistory">
+                                        Nenhuma mensagem enviada ainda hoje.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação -->
+<div class="modal fade" id="confirmSendModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark border border-secondary">
+            <div class="modal-header border-bottom border-secondary">
+                <h5 class="modal-title text-white">
+                    <i class="fas fa-paper-plane me-2"></i>Confirmar Envio
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Tem certeza que deseja enviar esta mensagem para <strong id="modalAgentCount">0</strong> agente(s)?
+                </div>
+                <div class="bg-night rounded p-3">
+                    <strong class="text-white">Mensagem:</strong>
+                    <div class="text-white mt-2" id="modalMessagePreview"></div>
+                </div>
+            </div>
+            <div class="modal-footer border-top border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="confirmSend">
+                    <i class="fas fa-check me-2"></i>Confirmar Envio
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+
+    const agentGroup = document.getElementById('agentGroup');
+    const messageText = document.getElementById('messageText');
+    const sendButton = document.getElementById('sendMessage');
+    const clearButton = document.getElementById('clearMessage');
+    const previewButton = document.getElementById('previewMessage');
+    const messagePreview = document.getElementById('messagePreview');
+    const charCount = document.getElementById('charCount');
+    const messageOptions = document.querySelectorAll('.message-option');
+
+    let selectedMessage = '';
+    let currentAgents = [];
+        let allAccounts = [];
+        let onlineUsers = {};
+        let queueGroups = {};
+
+        // Função para obter contas do servidor (reutilizada do callcenter)
+        async function getAccounts() {
+            try {
+                const response = await fetch('accountsList', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        authToken: (new UserManager).getValue('token')
+                    })
+                });
+                return await response.json();
+            } catch (error) {
+                console.error('Erro ao obter contas:', error);
+                return [];
+            }
+        }
+
+        // Função para obter usuários online (reutilizada do callcenter)
+        async function getOnlineUsers() {
+            try {
+                const response = await sendRecByToken({
+                    token: (new UserManager).getValue('token')
+                }, 'connectionsOnline');
+                return response || {};
+            } catch (error) {
+                console.error('Erro ao obter usuários online:', error);
+                return {};
+            }
+        }
+
+        // Função para obter grupos/queues
+        async function getQueues() {
+            try {
+                const response = await fetch('listQueues', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        authToken: (new UserManager).getValue('token')
+                    })
+                });
+                const data = await response.json();
+                return data.error ? {} : data;
+            } catch (error) {
+                console.error('Erro ao obter grupos:', error);
+                return {};
+            }
+        }
+
+        // Função para inicializar dados do sistema
+        async function initializeSystemData() {
+            try {
+                // Mostrar loading
+                agentGroup.innerHTML = '<option value="">Carregando grupos...</option>';
+
+                // Carregar dados do sistema
+                [allAccounts, onlineUsers, queueGroups] = await Promise.all([
+                    getAccounts(),
+                    getOnlineUsers(),
+                    getQueues()
+                ]);
+
+                console.log('Dados carregados:', { allAccounts, onlineUsers, queueGroups });
+
+                // Popular dropdown de grupos
+                populateGroupDropdown();
+
+            } catch (error) {
+                console.error('Erro ao inicializar dados:', error);
+                toast('Erro ao carregar dados do sistema', 'Erro', 3000, 'error');
+            }
+        }
+
+        // Função para popular o dropdown de grupos
+        function populateGroupDropdown() {
+            agentGroup.innerHTML = '<option value="">Selecione um grupo...</option>';
+
+            // Adicionar opções básicas
+            agentGroup.innerHTML += '<option value="all">Todos os Agentes</option>';
+            agentGroup.innerHTML += '<option value="online">Agentes Online</option>';
+            agentGroup.innerHTML += '<option value="offline">Agentes Offline</option>';
+
+            // Adicionar grupos/queues do sistema
+            if (queueGroups && Object.keys(queueGroups).length > 0) {
+                agentGroup.innerHTML += '<optgroup label="Grupos de Discagem">';
+                Object.keys(queueGroups).forEach(groupName => {
+                    agentGroup.innerHTML += `<option value="queue_${groupName}">${groupName}</option>`;
+                });
+                agentGroup.innerHTML += '</optgroup>';
+            }
+        }
+
+        // Atualizar lista de agentes quando grupo mudar
+        agentGroup.addEventListener('change', function() {
+            const selectedGroup = this.value;
+            updateAgentsList(selectedGroup);
+            updateSendButton();
+        });
+
+        // Selecionar mensagem rápida
+        messageOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                // Remove seleção anterior
+                messageOptions.forEach(opt => opt.classList.remove('selected'));
+                // Adiciona seleção atual
+                this.classList.add('selected');
+
+                // Atualiza textarea
+                const message = this.dataset.message;
+                messageText.value = message;
+                selectedMessage = message;
+
+                updateCharCount();
+                updateButtons();
+            });
+        });
+
+        // Atualizar contador de caracteres
+        messageText.addEventListener('input', function() {
+            updateCharCount();
+            updateButtons();
+            selectedMessage = this.value;
+        });
+
+        // Botão limpar
+        clearButton.addEventListener('click', function() {
+            messageText.value = '';
+            selectedMessage = '';
+            messageOptions.forEach(opt => opt.classList.remove('selected'));
+            messagePreview.style.display = 'none';
+            updateCharCount();
+            updateButtons();
+        });
+
+        // Botão pré-visualizar
+        previewButton.addEventListener('click', function() {
+            showPreview();
+        });
+
+        // Botão enviar
+        sendButton.addEventListener('click', function() {
+            showConfirmModal();
+        });
+
+        // Confirmar envio
+        document.getElementById('confirmSend').addEventListener('click', function() {
+            sendMessage();
+        });
+
+        function updateAgentsList(groupKey) {
+            const agentsList = document.getElementById('agentsList');
+            const selectedAgentsCount = document.getElementById('selectedAgentsCount');
+            const onlineAgentsCount = document.getElementById('onlineAgentsCount');
+
+            if (!groupKey) {
+                agentsList.innerHTML = 'Selecione um grupo para ver os agentes';
+                selectedAgentsCount.textContent = '0';
+                onlineAgentsCount.textContent = '0';
+                currentAgents = [];
+                return;
+            }
+
+            let agents = [];
+
+            // Filtrar agentes baseado na seleção
+            if (groupKey === 'all') {
+                agents = allAccounts.map(account => ({
+                    id: account.u,
+                    name: account.u,
+                    status: onlineUsers[account.u] ? 'online' : 'offline',
+                    address: onlineUsers[account.u] ? 
+                        `${onlineUsers[account.u].address}:${onlineUsers[account.u].port}` : 'N/A'
+                }));
+            } else if (groupKey === 'online') {
+                agents = allAccounts
+                    .filter(account => onlineUsers[account.u])
+                    .map(account => ({
+                        id: account.u,
+                        name: account.u,
+                        status: 'online',
+                        address: `${onlineUsers[account.u].address}:${onlineUsers[account.u].port}`
+                    }));
+            } else if (groupKey === 'offline') {
+                agents = allAccounts
+                    .filter(account => !onlineUsers[account.u])
+                    .map(account => ({
+                        id: account.u,
+                        name: account.u,
+                        status: 'offline',
+                        address: 'N/A'
+                    }));
+            } else if (groupKey.startsWith('queue_')) {
+                const queueName = groupKey.replace('queue_', '');
+                const queue = queueGroups[queueName];
+                if (queue && queue.agents) {
+                    agents = queue.agents.map(agentId => {
+                        const account = allAccounts.find(acc => acc.u === agentId);
+                        return {
+                            id: agentId,
+                            name: agentId,
+                            status: onlineUsers[agentId] ? 'online' : 'offline',
+                            address: onlineUsers[agentId] ? 
+                                `${onlineUsers[agentId].address}:${onlineUsers[agentId].port}` : 'N/A'
+                        };
+                    }).filter(agent => agent);
+                }
+            }
+
+            currentAgents = agents;
+            const onlineCount = agents.filter(a => a.status === 'online').length;
+
+            selectedAgentsCount.textContent = agents.length;
+            onlineAgentsCount.textContent = onlineCount;
+
+            if (agents.length === 0) {
+                agentsList.innerHTML = '<div class="text-muted small">Nenhum agente encontrado</div>';
+                return;
+            }
+
+            const agentsHtml = agents.map(agent => {
+                const statusColor = agent.status === 'online' ? 'success' : 'secondary';
+                const statusIcon = agent.status === 'online' ? 'circle' : 'times-circle';
+                const statusText = agent.status === 'online' ? 'Online' : 'Offline';
+
+                return `
+                    <div class="d-flex justify-content-between align-items-center py-1">
+                        <div>
+                            <span class="text-white small">${agent.name}</span>
+                            <small class="d-block text-muted" style="font-size: 0.7rem">${agent.address}</small>
+                        </div>
+                        <span class="badge bg-${statusColor}">
+                            <i class="fas fa-${statusIcon}"></i> ${statusText}
+                        </span>
+                    </div>
+                `;
+            }).join('');
+
+            agentsList.innerHTML = agentsHtml;
+        }
+
+        function updateCharCount() {
+            const count = messageText.value.length;
+            charCount.textContent = count;
+
+            if (count > 450) {
+                charCount.parentElement.classList.add('text-warning');
+            } else if (count > 500) {
+                charCount.parentElement.classList.add('text-danger');
+            } else {
+                charCount.parentElement.classList.remove('text-warning', 'text-danger');
+            }
+        }
+
+        function updateButtons() {
+            const hasMessage = messageText.value.trim().length > 0;
+            const hasGroup = agentGroup.value !== '';
+
+            previewButton.disabled = !hasMessage;
+            sendButton.disabled = !hasMessage || !hasGroup || currentAgents.length === 0;
+
+            if (hasMessage && hasGroup && currentAgents.length > 0) {
+                sendButton.classList.add('pulse');
+            } else {
+                sendButton.classList.remove('pulse');
+            }
+        }
+
+        function updateSendButton() {
+            updateButtons();
+        }
+
+        function showPreview() {
+            const previewText = document.getElementById('previewText');
+            const previewTime = document.getElementById('previewTime');
+            const previewPriority = document.getElementById('previewPriority');
+
+            previewText.textContent = messageText.value;
+            previewTime.textContent = new Date().toLocaleTimeString();
+
+            if (document.getElementById('priorityMessage').checked) {
+                previewPriority.style.display = 'block';
+            } else {
+                previewPriority.style.display = 'none';
+            }
+
+            messagePreview.style.display = 'block';
+        }
+
+        function showConfirmModal() {
+            const modal = new bootstrap.Modal(document.getElementById('confirmSendModal'));
+            const modalAgentCount = document.getElementById('modalAgentCount');
+            const modalMessagePreview = document.getElementById('modalMessagePreview');
+
+            modalAgentCount.textContent = currentAgents.length;
+            modalMessagePreview.textContent = messageText.value;
+
+            modal.show();
+        }
+
+        async function sendMessage() {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('confirmSendModal'));
+            modal.hide();
+
+            // Preparar dados para envio
+            const messageData = {
+                authToken: (new UserManager).getValue('token'),
+                message: messageText.value,
+                priority: document.getElementById('priorityMessage').checked ? 'high' : 'normal',
+                soundAlert: document.getElementById('soundAlert').checked,
+                recipients: currentAgents.map(agent => agent.id),
+                timestamp: new Date().toISOString()
+            };
+
+            try {
+                // Enviar mensagem através da API do sistema
+                const response = await fetch('sendWarningMessage', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(messageData)
+                });
+
+                const result = await response.json();
+
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+
+                // Adicionar ao histórico
+                addToHistory(messageText.value);
+
+                // Mostrar toast de sucesso
+                toast(
+                    `Mensagem enviada para ${currentAgents.length} agente(s) com sucesso!`,
+                    'Mensagem Enviada',
+                    4000,
+                    'success'
+                );
+
+                // Limpar formulário
+                clearButton.click();
+
+                // Atualizar último horário
+                document.getElementById('lastMessageTime').textContent = 
+                    new Date().toLocaleTimeString();
+
+            } catch (error) {
+                console.error('Erro ao enviar mensagem:', error);
+                toast(
+                    'Erro ao enviar mensagem: ' + error.message,
+                    'Erro',
+                    5000,
+                    'error'
+                );
+            }
+        }
+
+        function addToHistory(message) {
+            const messageHistory = document.getElementById('messageHistory');
+            const time = new Date().toLocaleTimeString();
+            const truncatedMessage = message.length > 50 ? 
+                message.substring(0, 50) + '...' : message;
+
+            const historyItem = `
+                <div class="border-bottom border-secondary pb-2 mb-2">
+                    <small class="text-white-50">${time}</small>
+                    <div class="text-white small">${truncatedMessage}</div>
+                    <small class="text-muted">Para: ${currentAgents.length} agente(s)</small>
+                </div>
+            `;
+
+            if (messageHistory.innerHTML.includes('Nenhuma mensagem')) {
+                messageHistory.innerHTML = historyItem;
+            } else {
+                messageHistory.insertAdjacentHTML('afterbegin', historyItem);
+            }
+        }
+
+        // Função para atualizar dados periodicamente
+        function setupAutoRefresh() {
+            setInterval(async () => {
+                if (agentGroup.value) {
+                    // Atualizar apenas usuários online para melhor performance
+                    onlineUsers = await getOnlineUsers();
+                    updateAgentsList(agentGroup.value);
+                }
+            }, 30000); // Atualizar a cada 30 segundos
+        }
+
+        // Inicializar sistema
+        async function init() {
+            await initializeSystemData();
+            setupAutoRefresh();
+            updateButtons();
+            updateCharCount();
+        }
+
+        // Inicializar quando a página carregar
+        init();
+
+</script>

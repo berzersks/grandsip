@@ -1,0 +1,651 @@
+<!-- Botões de Ação -->
+<!-- Prism.js para syntax highlighting -->
+<link href="/css/prism.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script>
+    Prism.languages.sip = {
+        // Métodos SIP (INVITE, ACK, BYE, CANCEL, etc.)
+        'sip-method': {
+            pattern: /\b(INVITE|ACK|BYE|CANCEL|OPTIONS|REGISTER|INFO|PRACK|SUBSCRIBE|NOTIFY|PUBLISH|REFER|MESSAGE|UPDATE)\b/g,
+            alias: 'keyword'
+        },
+
+        // Protocolo SIP/2.0
+        'sip-protocol': {
+            pattern: /\bSIP\/2\.0\b/g,
+            alias: 'class-name'
+        },
+
+        // Campos de cabeçalhos SIP (Via, From, To, etc.)
+        'sip-header': {
+            pattern: /^(?:Via|From|To|Call-ID|CSeq|Contact|Max-Forwards|User-Agent|Server|Allow|Supported|Content-Type|Content-Length|Session-Expires|Min-SE|Authorization|Remote-Party-ID|Record-Route|Route|Proxy-Authenticate|Proxy-Authorization|Expires|WWW-Authenticate|Replaces|Subject|P-Asserted-Identity|P-Preferred-Identity|Privacy|Alert-Info|P-Called-Party-ID|P-Access-Network-Info|P-Charging-Vector|P-Asserted-Service|P-Served-User|P-Visited-Network-ID|RSeq|RAck|Require|Retry-After|Timestamp|Unsupported|Warning):/gm,
+            alias: 'property'
+        },
+
+        // Valores de cabeçalho SIP (endereços SIP, números de chamadas)
+        'sip-value': {
+            pattern: /<(?:sip|sips):[^>]+>/g,
+            alias: 'string'
+        },
+
+        // Call-ID, Tags, CSeq (valores numéricos únicos)
+        'sip-tag': {
+            pattern: /\b([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}|[0-9]{8,})\b/g,
+            alias: 'number'
+        },
+
+        // SDP (Session Description Protocol)
+        'sdp-session': {
+            pattern: /^(v|o|s|c|t|m)=[^\n\r]+/gm,
+            alias: 'bold'
+        },
+
+        // SDP Codecs (rtpmap, fmtp)
+        'sdp-codec': {
+            pattern: /^(a=rtpmap:[0-9]+ [a-zA-Z0-9\-\/]+)/gm,
+            alias: 'function'
+        },
+
+        // Comentários (caso tenha algo em logs ou debug)
+        'comment': {
+            pattern: /(^|\s)#[^\n]*/g,
+            alias: 'comment'
+        }
+    };
+
+</script>
+
+
+<div class="p-3 rounded bg-dark shadow text-light">
+    <div class="d-flex justify-content-between align-items-center">
+        <div class="d-flex justify-content-center justify-content-md-start mb-2 mb-md-0">
+            <div class="input-group mb-3">
+                <span class="input-group-text" id="basic-addon12">Pesquisar...</span>
+                <input aria-describedby="basic-addon1" aria-label="Origem" class="form-control" id="filterLog" placeholder="Pesquisa geral..." type="text">
+            </div>
+        </div>
+        <div class="d-flex justify-content-center justify-content-md-end mb-2 mb-md-0">
+            <!-- limpar todos os logs -->
+            <button class="btn btn-danger mb-1" onclick="(async () => {if (confirm('Tem certeza que deseja limpar todos os logs?')) {
+            await fetch('/clearLogs', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({authToken: (new UserManager).getValue('token')}),
+            });fetchLogs()}})()">
+                Limpar logs
+            </button>
+        </div>
+
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-dark table-hover" id="callHistoryTable">
+            <thead>
+            <tr>
+                <th>Iniciador</th>
+                <th>Destino</th>
+                <th>Falando</th>
+                <th>Data/Hora</th>
+                <th>Status</th>
+                <th>Ações</th>
+            </tr>
+            </thead>
+            <tbody id="callHistoryBody">
+            <!-- Linhas serão adicionadas dinamicamente -->
+            </tbody>
+        </table>
+    </div>
+
+    <div class="d-flex flex-column mt-2 flex-md-row align-items-center">
+        <!-- Botões de paginação -->
+        <div class="d-flex justify-content-center justify-content-md-start mb-2 mb-md-0">
+            <button class="btn btn-primary me-2" disabled id="prevPage">Anterior</button>
+            <div class="btn-group me-2" id="paginationButtons" role="group">
+                <!-- Botões de páginas serão adicionados dinamicamente -->
+            </div>
+            <button class="btn btn-primary ms-2" disabled id="nextPage">Próxima</button>
+        </div>
+
+        <!-- Informações de paginação -->
+        <div class="ms-auto text-center text-md-end">
+            <small>Mostrando <span id="currentPageStart">1</span> a <span id="currentPageEnd">10</span> de <span
+                    id="totalRecords">0</span> registros</small>
+        </div>
+    </div>
+</div>
+
+<!-- Modal do waveform -->
+<div aria-hidden="true" aria-labelledby="callDetailsModalLabel" class="modal fade" id="callDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="callDetailsModalLabel">Detalhes da chamada</h5>
+                <button aria-label="Fechar" class="btn-close" data-bs-dismiss="modal" type="button"></button>
+            </div>
+            <div class="modal-body">
+
+                <div id="waveformContainer"></div>
+                <div id="controls-bar"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- modal com detalhes da chamada -->
+<div aria-hidden="true" aria-labelledby="callDetailsModalLabel" class="modal fade" id="callInfoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="">Detalhes da chamada</h5>
+                <button aria-label="Fechar" class="btn-close" data-bs-dismiss="modal" type="button"></button>
+            </div>
+            <div class="modal-body" id="callInfoContentTrace">
+
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<style>
+    /* Fundo escuro para o container SIP */
+    .sip-trace-container {
+        background: #1e1e1e;
+        color: #f8f8f2;
+        border-radius: 10px;
+        padding: 10px;
+        margin-bottom: 10px;
+        border: 1px solid #444;
+        font-family: "Courier New", monospace;
+    }
+
+    /* Método SIP (INVITE, ACK, BYE, etc.) */
+    .token.sip-method {
+        color: #ff4500;
+        font-weight: bold;
+    }
+
+    /* Protocolo SIP/2.0 */
+    .token.sip-protocol {
+        color: #0077ff;
+        font-weight: bold;
+    }
+
+    /* Cabeçalhos SIP */
+    .token.sip-header {
+        color: #ffcc00;
+        font-weight: bold;
+    }
+
+    /* Valores SIP (Endereços sip:, sips:, tags, Call-ID) */
+    .token.sip-value {
+        color: #00ffcc;
+    }
+
+    /* Call-ID, Tags, CSeq */
+    .token.sip-tag {
+        color: #ff00ff;
+        font-weight: bold;
+    }
+
+    /* SDP Session Description */
+    .token.sdp-session {
+        color: #ff3333;
+        font-weight: bold;
+    }
+
+    /* SDP Codecs */
+    .token.sdp-codec {
+        color: #00ff00;
+    }
+
+    /* Comentários */
+    .token.comment {
+        color: #888;
+        font-style: italic;
+    }
+
+
+</style>
+<script>
+    let currentPage = 1;
+    const recordsPerPage = 10;
+    const maxVisiblePages = 3;
+    let totalRecords = 0;
+
+    function renderSolution(solution) {
+        if (typeof solution === 'string') return solution;
+        let method = solution.method;
+        let render = '';
+
+        try {
+            render = solution.methodForParser.trim() + "\r\n";
+        } catch (e) {
+            render = solution.method + "\r\n";
+        }
+
+        // Processar os cabeçalhos
+        for (let key in solution.headers) {
+            if (key === method) continue;
+            if (key.includes(solution.methodForParser)) continue;
+            if (key === 'Content-Length') continue;
+            if (key === 'Content-Type') continue;
+
+            let value = solution.headers[key];
+            if (Array.isArray(value)) {
+                for (let vx of value) {
+                    if (!vx) continue;
+                    render += `${key}: ${vx}\r\n`;
+                }
+            }
+        }
+
+        let sdpRendering = '';
+        if (solution['sdp']) {
+            for (let key in solution.sdp) {
+                for (let value of solution.sdp[key]) {
+                    sdpRendering += `${key}=${value}\r\n`;
+                }
+            }
+
+            let length = sdpRendering.length;
+            if (length > 0) {
+                render += `Content-Type: application/sdp\r\n`;
+                render += `Content-Length: ${length}\r\n\r\n`;
+                render += sdpRendering;
+            }
+        } else if (solution['body']) {
+            render += `Content-Type: ${solution.headers['Content-Type'][0]}\r\n`;
+            render += `Content-Length: ${solution.body.length}\r\n\r\n`;
+            render += solution.body;
+        }
+
+        if (!render.includes('Content-Length')) {
+            render += `Content-Length: 0\r\n\r\n`;
+        }
+
+        return render;
+    }
+
+    window.unixTimeToDate = (unixTime) => {
+        const date = new Date(unixTime * 1000);
+        return date.toLocaleString();
+    };
+
+    window.showLogCall = (idCall) => {
+        let totalMsg = ``;
+        let logCall = window.cacheRowsLogs[idCall];
+        $('#callInfoModal').modal('show');
+        const dialog = window.cacheRowsLogs[idCall]
+        for (let i = 0; i < dialog.length; i++) {
+            let title = ``;
+            // direction: received e send
+            if (dialog[i]['direction'] === 'received') {
+                title = `<span class="text-white">
+    <i class="fas fa-arrow-right"></i> Recebido de <b class="text-blue">${dialog[i]['receiveFrom'].replace(/</g, '').replace(/>/g, '').replace('sip:', '')}</b></span>`;
+            } else {
+                title = `<span class="text-white"><i class="fa-solid fa-arrow-left"></i> Enviado para <b class="text-blue">${dialog[i]['sendTo'].replace(/</g, '').replace(/>/g, '').replace('sip:', '')}</b></span>`;
+            }
+
+            totalMsg += `
+<b>${title}</b>
+<div class="sip-trace-container">
+    <pre><code class="language-http">${Prism.highlight(renderSolution(dialog[i]['data']), Prism.languages.sip, 'sip')}</code></pre>
+</div>
+<br>
+`;
+        }
+
+
+        $('#callInfoContentTrace').html(totalMsg);
+
+    }
+
+
+    window.updatePaginationButtons = () => {
+        const totalPages = Math.ceil(totalRecords / recordsPerPage);
+        const paginationContainer = document.getElementById('paginationButtons');
+        paginationContainer.innerHTML = '';
+
+        const startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+        const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+        if (startPage > 1) {
+            paginationContainer.innerHTML += `<button class="btn btn-secondary" onclick="setPage(1)">1</button>`;
+        }
+        if (endPage === totalPages) {
+            paginationContainer.innerHTML += `<button class="btn btn-secondary">...</button>`;
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            const span = document.createElement('span');
+            span.classList.add('btn-group');
+            span.innerHTML = `
+                <button class="btn btn-${
+                i === currentPage ? 'primary' : 'secondary'
+            } ${i === currentPage ? 'active' : ''}" onclick="setPage(${i})">${i}</button>
+            `;
+            paginationContainer.appendChild(span);
+        }
+
+        if (endPage < totalPages) {
+            paginationContainer.innerHTML += `<button class="btn btn-secondary">...</button>`;
+            paginationContainer.innerHTML += `<button class="btn btn-secondary" onclick="setPage(${totalPages})">${totalPages}</button>`;
+        }
+
+        document.getElementById('prevPage').disabled = currentPage === 1;
+        document.getElementById('nextPage').disabled = currentPage === totalPages;
+    };
+
+    window.setPage = (page) => {
+        currentPage = page;
+        fetchLogs();
+    };
+
+    window.cacheRowsLogs = [];
+
+    window.showCallInfo = async (callId) => {
+        selectedCallId = callId;
+
+
+        const callTrace = window.cacheRowsLogs[callId];
+        const encodedDialog = window.cacheRowsLogs[callId]['dialog'];
+
+
+        let totalMsg = ``;
+        for (let i = 0; i < callTrace.length; i++) {
+            let title = ``;
+            // direction: received e send
+            if (callTrace[i]['direction'] === 'received') {
+                title = `<span class="text-white">
+ <i class="fas fa-arrow-right"></i> Recebido de <b class="text-blue">${callTrace[i]['receiveFrom'].replace(/</g, '').replace(/>/g, '').replace('sip:', '')}</b></span>`;
+            } else {
+                title = `<span class="text-white"><i class="fa-solid fa-arrow-left"></i> Enviado para <b class="text-blue">${callTrace[i]['sendTo'].replace(/</g, '').replace(/>/g, '').replace('sip:', '')}</b></span>`;
+            }
+
+            totalMsg += `
+
+<b>${title}</b>
+<div class="sip-trace-container">
+
+    <pre><code class="language-http">${Prism.highlight(renderSolution(callTrace[i]['data']), Prism.languages.sip, 'sip')}</code></pre>
+</div>
+<br>
+
+`;
+        }
+
+
+        $('#callInfoContentTrace').html(totalMsg);
+        $('#callInfoModal').modal('show');
+        // atualiza o trace da chamada a cada 2s se caso o modal estiver aberto
+        setTimeout(() => {
+            if ($('#callInfoModal').hasClass('show')) {
+                showCallInfo(callId, encodedDialog);
+            }
+        }, 2000);
+
+
+    };
+
+    // atualiza tabela se enviar enter
+    document.getElementById('filterLog').addEventListener('keypress', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            currentPage = 1; // Reseta para a primeira página ao pesquisar
+            fetchLogs();
+        }
+    });
+
+
+
+
+    window.fetchLogs = async () => {
+
+        const start = (currentPage - 1) * recordsPerPage;
+        const logs = await fetch('/callsHistory', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                authToken: (new UserManager).getValue('token'),
+                start: start,
+                search: document.getElementById('filterLog').value,
+                end: start + recordsPerPage
+            }),
+        }).then(response => response.json());
+        // salvar os logs em cache de modo fácil já pra depois obter pelo id
+        window.cacheRowsLogs = {};
+        logs.rows.forEach(row => {
+            window.cacheRowsLogs[row.call_id] = JSON.parse(row.trace);
+        });
+
+
+        totalRecords = logs.total;
+        $('#currentPageStart').text(start + 1);
+
+
+        // checar se o id tá disponivel
+        if (!$('#callHistoryBody')) {
+            return;
+        }
+
+
+
+        const tableBody = document.getElementById('callHistoryBody');
+        tableBody.innerHTML = ''; // Limpa a tabela
+
+        let table = $("#callHistoryBody");
+        table.html('');
+        let lines = "";
+        let rows = logs.rows;
+
+        rows.forEach(row => {
+            let dialog = JSON.parse(row.json);
+            let users = Object.keys(dialog);
+            let callData = [];
+            for (let i = 0; i < users.length; i++) {
+                let user = users[i];
+                let call = dialog[user];
+                if (dialog[user].startBy) {
+                    callData['startBy'] = user;
+                    callData['date'] = window.unixTimeToDate(call['startedAt']);
+                }
+                if (i > 0) {
+                    if (callData['startBy'] !== user) {
+                        callData['destination'] = user;
+                    }
+                }
+                if (call['status']) {
+                    callData['status'] = call['status'];
+                }
+                // se tiver a chave 'headers', então tem o numero da binagem
+                if (call['headers']) {
+
+                    var bina = call['headers']['To'][0].split(':');
+                    bina = bina[1].split('@');
+
+                    // abrir detalhes da chamada ao clicar na bina ou no numero
+
+
+                    callData['startByx'] = `<span class="badge bg-primary"> <i class="fa-sharp-duotone fa-solid fa-arrows-left-right"></i> ${bina[0]}</span>`;
+                    //callData['startBy'] = `${callData['startBy']} <span class="badge bg-primary">${call['headers']['To'][0]}</span>`;
+
+                }
+            }
+
+            // se nao tinha um destino, a chamada ainda nao foi sincronizada
+            let waitSync = (callData['destination'] === undefined);
+            let destination;
+            destination = callData['destination'] ?? false;
+            if (!callData['destination']) {
+                callData['destination'] = `<span class="badge bg-warning text-dark"><i class="fas fa-sync-alt"></i> Aguardando sincronização</span>`;
+            }
+            callData['duration'] = row.duration ?? '0s';
+            let status;
+            if (row.status === 'na') {
+                status = `<span class="badge bg-danger">Ligação falhou</span>`;
+            } else if (row.status === 'at') {
+                status = `<span class="badge bg-success">Atendida</span>`;
+            } else if (row.status === 'fnf') {
+                status = `fnf`;
+            } else {
+                status = `<span class="badge bg-danger">Encerrada</span>`;
+            }
+            if (waitSync) {
+                status = `<span class="badge bg-warning text-dark">Sem informações</span>`;
+                status = `<span class="badge bg-danger">Ligação falhou</span>`;
+
+
+            }
+            if (callData['status']) {
+                status = callData['status'];
+                if (status === '486') {
+                    status = `<span class="badge bg-danger"><i class="fas fa-ban"></i> Não perturbe</span>`;
+                } else if (status === '200') {
+                    if (callData.duration === '0:00:00') {
+                        status = `<span class="badge bg-info"><i class="fa-duotone fa-regular fa-head-side-headphones"></i> Chamada online</span>`;
+                    } else {
+                        status = `<span class="badge bg-success"><i class="fas fa-check"></i> Chamada concluída</span>`;
+                    }
+                }
+            }
+            if (row.status === 'fnf') {
+                status = `<span class="badge bg-danger"><i class="fa-regular fa-file-circle-xmark"></i> áudio não encontrado</span>`;
+            }
+            if (callData['startBy']) {
+                if (!callData.startBy.includes('<') && !callData.destination.includes('<') && callData.duration === '0:00:00' && callData['status'] === '200') {
+                    status = `<span class="badge bg-info"><i class="fa-duotone fa-regular fa-head-side-headphones"></i> Chamada online</span>`;
+                } else {
+                    // console.log(JSON.parse(row.json));
+                }
+            } else {
+                status = `<span class="badge bg-danger">Erro fatal</span>`;
+            }
+            if (row.status === 'fnf') {
+                status = `<span class="badge bg-danger"><i class="fa-regular fa-file-circle-xmark"></i> áudio não encontrado</span>`;
+            }
+
+
+            lines += `<tr>
+
+             <td>
+${callData['startBy']} ${Object.keys(callData).includes('startByx') ? callData['startByx'] : ''}
+             </td>
+                <td>${callData.destination}</td>
+                <td>${callData.duration}</td>
+                <td>${callData.date}</td>
+                <td>${row.status}</td>
+                <td>
+
+<div class="btn-group" role="group">
+    <!-- Botão Detalhes -->
+    <button class="btn text-white" style="background-color: #1565C0;" onclick="showLogCall('${row['call_id']}')">
+        <i class="fa-duotone fa-info"></i> &nbsp;
+        <span class="d-none d-sm-inline ms-2">Detalhes</span>
+    </button>
+
+    <!-- Botão Ouvir -->
+    <button class="btn text-white ${callData.duration === '0:00:00' ? 'disabled' : ''}"
+        style="background-color: #6C757D;"
+        data-bs-toggle="modal"
+        data-bs-target="#callDetailsModal"
+        onclick="showAudioLog('${row['call_id']}')">
+        <i class="fa-solid fa-waveform-lines"></i>
+        <span class="d-none d-sm-inline ms-2">Ouvir</span>
+    </button>
+
+    <!-- Botão Baixar -->
+    <a href="/downloadRecord?token=${(new UserManager).getValue('token')}&callId=${row['call_id']}"
+        class="btn text-white btn-success"
+
+
+
+        download="${callData.startBy}-${!callData.destination.includes('<') ? callData.destination : 'desconhecido'}.mp3">
+        <i class="fa-duotone fa-download"></i>
+        <span class="d-none d-sm-inline ms-2">Baixar</span>
+    </a>
+</div>
+
+
+
+                </td>
+            </tr>`;
+
+
+        });
+        table.html(lines);
+
+        const startRecord = (currentPage - 1) * recordsPerPage + 1;
+        const endRecord = Math.min(currentPage * recordsPerPage, totalRecords);
+        document.getElementById('currentPageStart').textContent = startRecord;
+        document.getElementById('currentPageEnd').textContent = endRecord;
+        document.getElementById('totalRecords').textContent = totalRecords;
+
+        updatePaginationButtons();
+    };
+
+    window.showAudioLog = (logId) => {
+        // abre o modal
+        $('#callDetailsModal').modal('show');
+        $('#waveformContainer').html('');
+        let token = (new UserManager).getValue('token');
+        let callId = logId;
+        if (!waveSurfer) {
+            waveSurfer = WaveSurfer.create({
+                container: '#waveformContainer',
+                waveColor: '#4b4872',
+                progressColor: '#00b1ff',
+                barWidth: 4,
+                barheight: 2,
+                barGap: 3,
+                barRadius: 2,
+                responsive: true,
+                //mediaControls: true,
+                url: '/getRecord?token=' + token + '&callId=' + callId
+            });
+        } else {
+            waveSurfer.destroy();
+            waveSurfer = WaveSurfer.create({
+                container: '#waveformContainer',
+                waveColor: '#4b4872',
+                progressColor: '#00b1ff',
+                barWidth: 4,
+                barheight: 2,
+                barGap: 3,
+                barRadius: 2,
+                responsive: true,
+                //mediaControls: true,
+                url: '/getRecord?token=' + token + '&callId=' + callId
+            });
+        }
+        let controls = document.getElementById('controls-bar');
+        controls.innerHTML = `
+            <button class="btn btn-primary" onclick="waveSurfer.playPause()">
+                <i class="fa-duotone fa-regular fa-play"></i>
+            </button>
+            <button class="btn btn-primary" onclick="waveSurfer.stop()">
+                <i class="fa-duotone fa-regular fa-stop"></i>
+            </button>
+        `
+        sleep(1000).then(() => {
+            waveSurfer.play();
+        });
+
+    };
+
+    document.getElementById('prevPage').addEventListener('click', () => {
+        if (currentPage > 1) {
+            setPage(currentPage - 1);
+        }
+    });
+
+    document.getElementById('nextPage').addEventListener('click', () => {
+        const totalPages = Math.ceil(totalRecords / recordsPerPage);
+        if (currentPage < totalPages) {
+            setPage(currentPage + 1);
+        }
+    });
+
+    fetchLogs();
+    setInterval(fetchLogs, 5000);
+</script>

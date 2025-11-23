@@ -1,0 +1,1497 @@
+<!-- Botões de Ação -->
+<!-- Prism.js para syntax highlighting -->
+<link href="/css/prism.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script>
+    // Definição simplificada para highlight SIP
+    Prism.languages.sip = {
+        'sip-method': {
+            pattern: /\b(INVITE|ACK|BYE|CANCEL|OPTIONS|REGISTER|INFO|PRACK|SUBSCRIBE|NOTIFY|PUBLISH|REFER|MESSAGE|UPDATE)\b/g,
+            alias: 'keyword'
+        },
+        'sip-protocol': {
+            pattern: /\bSIP\/2\.0\b/g,
+            alias: 'class-name'
+        },
+        'sip-header': {
+            pattern: /^(?:Via|From|To|Call-ID|CSeq|Contact|Max-Forwards|Content-Type|Content-Length):/gm,
+            alias: 'property'
+        },
+        'sip-value': {
+            pattern: /<(?:sip|sips):[^>]+>/g,
+            alias: 'string'
+        },
+        'sip-tag': {
+            pattern: /\b([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}|[0-9]{8,})\b/g,
+            alias: 'number'
+        },
+        'sdp-session': {
+            pattern: /^(v|o|s|c|t|m)=[^\n\r]+/gm,
+            alias: 'bold'
+        },
+        'sdp-codec': {
+            pattern: /^(a=rtpmap:[0-9]+ [a-zA-Z0-9\-\/]+)/gm,
+            alias: 'function'
+        }
+    };
+</script>
+
+
+<!-- Tabela de Chamadas Ativas -->
+<div class="p-3 rounded bg-dark shadow text-light">
+
+
+    <!-- filtro de chamadas por origem e destino -->
+    <div class="row mb-3">
+        <div class="col-12 col-md-4">
+            <div class="input-group">
+                <span class="input-group-text" id="basic-addon1">Origem</span>
+                <input aria-describedby="basic-addon1"
+                       aria-label="Origem" class="form-control" id="filterOrigin" placeholder="Origem"
+                       type="text">
+            </div>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-dark table-hover" id="callsTableX">
+            <thead>
+            <tr>
+                <th>#</th>
+                <th>Call ID</th>
+                <th>Codec</th>
+                <th onclick="orderByTime()" style="cursor:pointer;">Duração <i class="fas fa-sort"></i></th>
+                <th>Origem</th>
+                <th>Destino</th>
+                <th class="d-none d-md-table-cell">Tronco</th>
+                <th>Ações</th>
+            </tr>
+            </thead>
+            <tbody id="callsTableBodyPagePage">
+            <!-- Linhas geradas dinamicamente -->
+            </tbody>
+        </table>
+    </div>
+    <div class="d-flex flex-column mt-2 flex-md-row align-items-center">
+        <!-- Botões de paginação -->
+        <div class="d-flex justify-content-center justify-content-md-start mb-2 mb-md-0">
+            <button class="btn btn-primary me-2" disabled id="prevPage">Anterior</button>
+            <div class="btn-group me-2" id="paginationButtons" role="group">
+                <!-- Botões de páginas serão adicionados dinamicamente -->
+            </div>
+            <button class="btn btn-primary ms-2" disabled id="nextPage">Próxima</button>
+        </div>
+
+        <!-- Informações de paginação -->
+        <div class="ms-auto text-center text-md-end">
+            <small>Mostrando <span id="currentPageStart">1</span> a <span id="currentPageEnd">10</span> de <span
+                    id="totalRecordsCallPage">0</span> registros</small>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal para Mais Informações -->
+<div aria-hidden="true" aria-labelledby="callInfoModalLabel" class="modal fade" id="callInfoModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content modal-xl bg-dark text-light border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title text-white" id="callInfoModalLabel">Informações da Chamada</h5>
+                <button aria-label="Close" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        type="button"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="m-0">Visualização</h6>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="toggleSipTrace" checked>
+                        <label class="form-check-label" for="toggleSipTrace">Exibir Trace SIP</label>
+                    </div>
+                </div>
+                <div id="callInfoContent" class="">
+                    <!-- Informações da chamada preenchidas dinamicamente -->
+                </div>
+            </div>
+            <div class="modal-footer border-secondary" style="margin-top: -20px !important;">
+                <div class="w-100" id="modalTraceCallsBtns"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Estilo para exibição de DTMFs */
+    .dtmf-display {
+        font-family: monospace;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background-color: rgba(0, 0, 0, 0.2);
+        transition: all 0.3s ease;
+    }
+
+    .dtmf-display:not(:empty) {
+        margin-top: 5px !important;
+        display: inline-block;
+    }
+
+    /* Método SIP (INVITE, ACK, BYE, etc.) */
+    .token.sip-method {
+        color: #ff4500;
+        font-weight: bold;
+    }
+
+    /* Protocolo SIP/2.0 */
+    .token.sip-protocol {
+        color: #0077ff;
+        font-weight: bold;
+    }
+
+    /* Cabeçalhos SIP */
+    .token.sip-header {
+        color: #ffcc00;
+        font-weight: bold;
+    }
+
+    /* Valores SIP (Endereços sip:, sips:, tags, Call-ID) */
+    .token.sip-value {
+        color: #00ffcc;
+    }
+
+    /* Call-ID, Tags, CSeq */
+    .token.sip-tag {
+        color: #ff00ff;
+        font-weight: bold;
+    }
+
+    /* SDP Session Description */
+    .token.sdp-session {
+        color: #ff3333;
+        font-weight: bold;
+    }
+
+    /* SDP Codecs */
+    .token.sdp-codec {
+        color: #00ff00;
+    }
+
+    /* Comentários */
+    .token.comment {
+        color: #888;
+        font-style: italic;
+    }
+
+    /* Estilo para scrollbar personalizado */
+    .custom-scrollbar {
+        overflow-y: auto;
+        max-height: 70vh;
+        scrollbar-width: thin;
+        scrollbar-color: #4e73df #1e1e2d;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: #1e1e2d;
+        border-radius: 10px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background-color: #4e73df;
+        border-radius: 10px;
+    }
+
+    /* Estilo para containers de trace SIP */
+    .sip-trace-container {
+        max-height: 200px;
+        overflow-x: auto;
+        border-radius: 0.375rem;
+        transition: max-height 0.3s;
+    }
+
+    .sip-trace-container:hover {
+        max-height: 400px;
+    }
+
+    /* Responsividade */
+    @media (max-width: 768px) {
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        .btn {
+            padding: 0.375rem 0.5rem;
+        }
+
+        /* Estilos otimizados para botões em dispositivos móveis */
+        .modal-footer {
+            padding: 0.75rem;
+        }
+
+        .btn {
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    }
+
+    /* Otimizações gerais */
+    #floating-audio-container {
+        max-width: 95vw;
+    }
+
+    /* Estilos para o controle de volume */
+    .custom-volume-slider {
+        -webkit-appearance: none;
+        appearance: none;
+        height: 8px;
+        border-radius: 4px;
+        outline: none;
+        background: linear-gradient(to right, #4e73df var(--volume-percent, 70%), rgba(255, 255, 255, 0.1) var(--volume-percent, 70%));
+        transition: background 0.3s ease;
+    }
+
+    /* Estilo para o botão deslizante (thumb) */
+    .custom-volume-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #fff;
+        cursor: pointer;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+    }
+
+    .custom-volume-slider::-moz-range-thumb {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #fff;
+        cursor: pointer;
+        border: none;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+    }
+
+    .custom-volume-slider::-ms-thumb {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #fff;
+        cursor: pointer;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Estilo para a trilha (track) */
+    .custom-volume-slider::-webkit-slider-runnable-track {
+        height: 8px;
+        border-radius: 4px;
+    }
+
+    .custom-volume-slider::-moz-range-track {
+        height: 8px;
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .custom-volume-slider::-ms-track {
+        height: 8px;
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .form-check-input {
+        background-color: rgba(50, 48, 48, 0.1);
+
+        border-radius: 0.25rem;
+        margin-right: 0.5rem;
+        height: 1.25rem;
+        width: 1.25rem;
+        transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+
+    /* Estilo para o toggle switch */
+    .form-check-input:checked {
+        background-color: #4e73df;
+        border-color: #4e73df;
+    }
+
+    .form-check-input:focus {
+        box-shadow: 0 0 0 0.25rem rgba(78, 115, 223, 0.25);
+    }
+
+    /* Melhorias para exibição em dispositivos móveis */
+    @media (max-width: 576px) {
+        .table th, .table td {
+            padding: 0.5rem 0.25rem;
+            font-size: 0.85rem;
+        }
+
+        .modal-body {
+            padding: 0.75rem;
+        }
+
+        #callInfoContent .card-body {
+            padding: 0.75rem;
+        }
+
+        .sip-trace-container {
+            font-size: 0.8rem;
+        }
+    }
+</style>
+
+<script>
+    let selectedCallId = null;
+    const CALLS_URL = 'listCalls';
+    const CONTENT_TYPE_JSON = {'Content-Type': 'application/json'};
+    let currentPage = 1;
+    const recordsPerPage = 10;
+    const maxVisiblePages = 5;
+    let totalRecordsCallPage = 0;
+
+    function renderSolution(solution) {
+        if (typeof solution === 'string') return solution;
+        let method = solution.method;
+        let render = '';
+
+        try {
+            render = solution.methodForParser.trim() + "\r\n";
+        } catch (e) {
+            render = solution.method + "\r\n";
+        }
+
+        // Processar os cabeçalhos
+        for (let key in solution.headers) {
+            if (key === method) continue;
+            if (key.includes(solution.methodForParser)) continue;
+            if (key === 'Content-Length') continue;
+            if (key === 'Content-Type') continue;
+
+            let value = solution.headers[key];
+            if (Array.isArray(value)) {
+                for (let vx of value) {
+                    if (!vx) continue;
+                    render += `${key}: ${vx}\r\n`;
+                }
+            }
+        }
+
+        let sdpRendering = '';
+        if (solution['sdp']) {
+            for (let key in solution.sdp) {
+                for (let value of solution.sdp[key]) {
+                    sdpRendering += `${key}=${value}\r\n`;
+                }
+            }
+
+            let length = sdpRendering.length;
+            if (length > 0) {
+                render += `Content-Type: application/sdp\r\n`;
+                render += `Content-Length: ${length}\r\n\r\n`;
+                render += sdpRendering;
+            }
+        } else if (solution['body']) {
+            render += `Content-Type: ${solution.headers['Content-Type'][0]}\r\n`;
+            render += `Content-Length: ${solution.body.length}\r\n\r\n`;
+            render += solution.body;
+        }
+
+        if (!render.includes('Content-Length')) {
+            render += `Content-Length: 0\r\n\r\n`;
+        }
+
+        return render;
+    }
+
+
+    async function getCallTrace(callId) {
+        const response = await fetch('/getCallTrace', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({authToken: (new UserManager).getValue('token'), callId})
+        });
+
+        if (!response.ok) {
+            throw new Error('Erro ao carregar o trace da chamada.');
+        }
+        return await response.text();
+    }
+
+
+    // Variável global para controlar o intervalo de verificação do modal
+    let callExistenceCheckInterval = null;
+
+    // Função para verificar se uma chamada específica ainda existe
+    const checkCallExists = async (callId) => {
+        try {
+            const response = await fetch('/getCallTrace', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({authToken: (new UserManager).getValue('token'), callId})
+            });
+
+            if (!response.ok) {
+                return false;
+            }
+
+            const callTrace = await response.text();
+
+            // Verificar se o retorno indica que a chamada não foi encontrada
+            if (callTrace === '{"error":"Call not found"}' || callTrace.includes('"error":"Call not found"')) {
+                return false;
+            }
+
+            // Verificar se o trace está vazio ou é um array vazio
+            return callTrace && callTrace.length > 0 && callTrace !== '[]';
+        } catch (error) {
+            console.error('Erro ao verificar existência da chamada:', error);
+            return false;
+        }
+    };
+
+    // Função para mostrar toast de chamada encerrada
+    const showCallEndedNotification = (callId) => {
+        // Fechar player de áudio se estiver tocando esta chamada
+        const audioPlayer = document.getElementById('live-audio-player');
+        const audioContainer = document.getElementById('floating-audio-container');
+
+        if (audioPlayer && audioPlayer.dataset.callId === callId) {
+            // Para o áudio e remove os elementos
+            audioPlayer.pause();
+            audioPlayer.src = '';
+
+            if (audioContainer) {
+                audioContainer.style.opacity = '0';
+                audioContainer.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    audioContainer.remove();
+                    audioPlayer.remove();
+                }, 300);
+            } else {
+                audioPlayer.remove();
+            }
+        }
+
+        // Cria um toast personalizado
+        const toastContainer = document.getElementById('toast-container') || (() => {
+            const container = document.createElement('div');
+            container.id = 'toast-container';
+            container.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 10000;';
+            document.body.appendChild(container);
+            return container;
+        })();
+
+        const toast = document.createElement('div');
+        toast.className = 'toast show';
+        toast.style.cssText = `
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            color: white;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 300px;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+        `;
+
+        toast.innerHTML = `
+            <i class="fas fa-phone-slash" style="font-size: 18px;"></i>
+            <div>
+                <strong>Chamada Encerrada</strong><br>
+                <small>A chamada ${callId.substring(0, 8)} foi finalizada</small>
+            </div>
+            <button onclick="this.parentElement.remove()" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer; margin-left: auto;">×</button>
+        `;
+
+        toastContainer.appendChild(toast);
+
+        // Animação de entrada
+        setTimeout(() => {
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateX(0)';
+        }, 100);
+
+        // Remove automaticamente após 5 segundos
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(100%)';
+            setTimeout(() => toast.remove(), 300);
+        }, 5000);
+    };
+
+    window.showCallInfo = async (callId, encodedDialog) => {
+        selectedCallId = callId;
+        $('#callInfoModalLabel').html(callId.substring(0, 8));
+
+        // Limpar intervalo anterior se existir
+        if (callExistenceCheckInterval) {
+            clearInterval(callExistenceCheckInterval);
+            callExistenceCheckInterval = null;
+        }
+
+        // Recuperar preferência do usuário salva no localStorage
+        const showTracePreference = localStorage.getItem('showSipTrace') !== 'false';
+
+        try {
+            // Primeiro, verificar se a chamada ainda existe
+            const callExists = await checkCallExists(callId);
+            if (!callExists) {
+                showCallEndedNotification(callId);
+                return;
+            }
+
+            // Buscar trace da chamada
+            let callTraceX = await getCallTrace(callId);
+            let callTrace = JSON.parse(callTraceX);
+
+            // Processar mensagens SIP
+            let totalMsg = ``;
+            for (let i = 0; i < callTrace.length; i++) {
+                const direction = callTrace[i]['direction'];
+
+
+                let source = direction === 'received' ?
+                    callTrace[i]['receiveFrom'].replace(/</g, '').replace(/>/g, '').replace('sip:', '') :
+                    callTrace[i]['sendTo'].replace(/</g, '').replace(/>/g, '').replace('sip:', '');
+                source = source.replace(/@.*/, ''); // Remove o domínio
+                source = source.replace('sip:', ''); // Remove o prefixo "sip:"  // tira o "sip:"
+
+
+                const icon = direction === 'received' ? 'fa-arrow-right' : 'fa-arrow-left';
+                const action = direction === 'received' ? 'Recebido de<br>' : 'Enviado para<br>';
+                const bgColor = direction === 'received' ? 'bg-dark' : 'bg-dark';
+
+                totalMsg += `
+                    <div class="mb-3" style="background: transparent !important;padding: 0.5rem">
+                        <div class="d-flex align-items-center mb-2 text-white">
+                            <div class="badge ${direction === 'received' ? 'bg-info' : 'bg-primary'} me-2">
+                                <i class="fas ${icon}"></i>  ${action}
+                            </div>
+                            <div class="text-info ms-1">${source}</div>
+                        </div>
+                          <pre class="mb-0"><code class="language-http">${Prism.highlight(renderSolution(callTrace[i]['data']), Prism.languages.sip, 'sip')}</code></pre>
+                    </div>
+                `;
+            }
+
+            // Processar informações de participantes
+            const dialog = JSON.parse(atob(encodedDialog));
+            let participantsInfo = `<div class="card bg-dark border-secondary mb-3 text-white"><div class="card-header d-flex align-items-center text-white"><i class="fas fa-users me-2"></i>Participantes</div><div class="card-body"><div class="row">`;
+
+            Object.keys(dialog).forEach(user => {
+                if (!dialog[user]) return;
+
+                participantsInfo += `
+                    <div class="col-md-6 mb-3">
+                        <div class="card bg-dark border-secondary h-100">
+                            <div class="card-body p-3 text-white">
+                                <h6 class="card-title d-flex align-items-center justify-content-between text-${dialog[user].startBy ? 'primary' : 'info'} mb-2">
+                                    <span>${user}</span>
+                                    ${dialog[user].startBy ? '<span class="badge bg-primary">Origem</span>' : ''}
+                                </h6>
+                                <div class="small">
+                                    <div class="d-flex align-items-center mb-1"><i class="fas fa-network-wired me-2"></i>${dialog[user].peerIp}:${dialog[user].peerPort}</div>
+                                    ${dialog[user].codec ? `<div class="d-flex align-items-center mb-1"><i class="fas fa-microphone me-2"></i>Codec: ${dialog[user].codec}</div>` : ''}
+                                    ${dialog[user].trunk ? `<div class="d-flex align-items-center"><i class="fas fa-server me-2"></i>Tronco: ${dialog[user].trunk}</div>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            participantsInfo += `</div></div></div>`;
+
+            // Combinar conteúdo
+            const infoContent = `
+
+                ${participantsInfo}
+                <div class="card border-secondary mb-0" id="sipTraceCard" style="background: transparent !important;">
+                    <div class="card-header d-flex align-items-center text-white">
+                        <i class="fas fa-exchange-alt me-2"></i>Trace
+                    </div>
+                    <div class="card-body" style="background: transparent !important; padding: 0.5rem">
+                        ${totalMsg}
+                    </div>
+                </div>
+            `;
+
+            // Atualizar modal com botões responsivos
+            $('#modalTraceCallsBtns').html(`
+                <div class="d-flex flex-column flex-md-row w-100 gap-2">
+                    <button class="btn btn-success w-100" onclick="window.listenToCall('${callId}')">
+                        <i class="fas fa-headphones me-2"></i>Ouvir
+                    </button>
+                    <button class="btn btn-danger w-100" onclick="terminateCall('${callId}')">
+                        <i class="fas fa-phone-slash me-2"></i>Encerrar
+                    </button>
+                    <button class="btn btn-secondary w-100 closeModals">
+                        <i class="fas fa-times me-2"></i>Fechar
+                    </button>
+                </div>
+            `);
+
+            $('#callInfoContent').html(infoContent);
+            $('.closeModals').on('click', () => {
+                if (callExistenceCheckInterval) {
+                    clearInterval(callExistenceCheckInterval);
+                    callExistenceCheckInterval = null;
+                }
+                $('#callInfoModal').modal('hide');
+            });
+
+            // Configurar o toggle switch
+            $('#toggleSipTrace').prop('checked', showTracePreference);
+            $('#toggleSipTrace').on('change', function () {
+                const isChecked = $(this).is(':checked');
+                if (isChecked) {
+                    $('#sipTraceCard').show();
+                } else {
+                    $('#sipTraceCard').hide();
+                }
+
+                // Salvar preferência do usuário
+                localStorage.setItem('showSipTrace', isChecked);
+            });
+
+            // Aplicar estado inicial do toggle
+            $('#toggleSipTrace').trigger('change');
+
+            $('#callInfoModal').modal('show');
+
+            // Configurar verificação periódica da existência da chamada
+            callExistenceCheckInterval = setInterval(async () => {
+                if ($('#callInfoModal').hasClass('show')) {
+                    const stillExists = await checkCallExists(callId);
+                    if (!stillExists) {
+                        // Chamada não existe mais, fechar modal e mostrar notificação
+                        if (callExistenceCheckInterval) {
+                            clearInterval(callExistenceCheckInterval);
+                            callExistenceCheckInterval = null;
+                        }
+                        $('#callInfoModal').modal('hide');
+                        showCallEndedNotification(callId);
+                    } else {
+                        // Chamada ainda existe, atualizar informações
+                        showCallInfo(callId, encodedDialog);
+                    }
+                } else {
+                    // Modal foi fechado, limpar intervalo
+                    if (callExistenceCheckInterval) {
+                        clearInterval(callExistenceCheckInterval);
+                        callExistenceCheckInterval = null;
+                    }
+                }
+            }, 3000); // Verifica a cada 3 segundos
+
+        } catch (error) {
+            console.error('Erro ao carregar informações da chamada:', error);
+            $('#callInfoContent').html(`<div class="alert alert-danger">Erro ao carregar informações: ${error.message}</div>`);
+        }
+    };
+
+
+    const getTotalMinutes = (timeString) => {
+        const [hours, minutes] = timeString.split(':').map(Number);
+        return hours * 60 + minutes;
+    };
+
+    window.formatNumberPhone = (number) => {
+        if (number.startsWith('55')) {
+            // +55 (11) 99999-9999
+            return `+${number.slice(0, 2)} (${number.slice(2, 4)}) ${number.slice(4, 9)}-${number.slice(9)}`;
+        } else if (number.startsWith('0')) {
+            // 011 99999-9999
+            return `${number.slice(0, 3)} ${number.slice(3, 8)}-${number.slice(8)}`;
+        } else {
+            // 99999-9999
+            return `${number.slice(0, 5)}-${number.slice(5)}`;
+        }
+    }
+    const sortRows = (rows, comparator) => {
+        return rows.sort((rowA, rowB) => {
+            const timeA = getTotalMinutes($(rowA).children('td').eq(2).text());
+            const timeB = getTotalMinutes($(rowB).children('td').eq(2).text());
+            return comparator(timeA, timeB);
+        });
+    };
+
+    window.orderByTime = () => {
+        const tableBody = $('#callsTableBodyPagePage');
+        const rows = tableBody.find('tr').get();
+
+        if (window.orderByTimeAsc) {
+            window.orderByTimeAsc = false;
+            const sortedRows = sortRows(rows, (a, b) => b - a); // Ordenação decrescente
+            tableBody.append(sortedRows);
+        } else {
+            window.orderByTimeAsc = true;
+            const sortedRows = sortRows(rows, (a, b) => a - b); // Ordenação crescente
+            tableBody.append(sortedRows);
+        }
+    };
+
+    window.terminateAllCalls = async () => {
+        let calls = document.getElementById('callsTableBodyPagePage').getElementsByTagName('tr');
+        for (let i = 0; i < calls.length; i++) {
+            let callId = calls[i].getElementsByTagName('td')[1].innerText;
+            await terminateCall(callId);
+        }
+
+    }
+    const activeIntervals = {};
+    window.updateCallDuration = (elementId, startedAt) => {
+        // Limpa qualquer intervalo existente para este elemento
+        if (activeIntervals[elementId]) {
+            clearInterval(activeIntervals[elementId]);
+        }
+
+        const update = () => {
+            const currentTime = Math.floor(Date.now() / 1000); // Tempo atual em segundos
+            const duration = currentTime - startedAt; // Diferença de tempo em segundos
+
+            const minutes = String(Math.floor(duration / 60)).padStart(2, '0');
+            const seconds = String(duration % 60).padStart(2, '0');
+            const $element = $(`#${elementId}`);
+
+            // Evita erros se o elemento for removido
+            if ($element.length > 0) {
+                $element.text(`${minutes}:${seconds}`);
+            } else {
+                // Se o elemento não existe mais, limpa o intervalo
+                clearInterval(activeIntervals[elementId]);
+                delete activeIntervals[elementId];
+            }
+        };
+
+        // Chama imediatamente e configura o intervalo
+        update();
+        activeIntervals[elementId] = setInterval(update, 1000);
+        orderByTime();
+    }
+
+    window.updateCallsTableList = async () => {
+        try {
+            const callData = await fetchCalls();
+            if (!callData.error)
+                updateCallsTable(callData);
+            else {
+                // limpa tabela
+                $('#callsTableBodyPagePage').empty();
+            }
+        } catch (error) {
+            console.error('Erro ao carregar as chamadas:', error.message);
+        }
+    };
+
+    const fetchCalls = async () => {
+        const start = (currentPage - 1) * recordsPerPage;
+        const response = await fetch(CALLS_URL, {
+            method: 'POST',
+            headers: CONTENT_TYPE_JSON,
+            body: JSON.stringify({
+                authToken: new UserManager().getValue('token'),
+                start: start,
+                end: start + recordsPerPage,
+                filter: $('#filterOrigin').val()
+            })
+        });
+        if (!response.ok) {
+            throw new Error('Erro ao carregar as chamadas.');
+        }
+        return await response.json();
+    };
+
+    window.updatePaginationButtons = () => {
+        const totalPages = Math.ceil(totalRecordsCallPage / recordsPerPage);
+        const paginationContainer = document.getElementById('paginationButtons');
+        paginationContainer.innerHTML = '';
+
+        const startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+        const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+        if (startPage > 1) {
+            paginationContainer.innerHTML += `<button class="btn btn-secondary" onclick="setPage(1)">1</button>`;
+        }
+        if (endPage === totalPages) {
+            paginationContainer.innerHTML += `<button class="btn btn-secondary">...</button>`;
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            const span = document.createElement('span');
+            span.classList.add('btn-group');
+            span.innerHTML = `
+                <button class="btn btn-${
+                i === currentPage ? 'primary' : 'secondary'
+            } ${i === currentPage ? 'active' : ''}" onclick="setPage(${i})">${i}</button>
+            `;
+            paginationContainer.appendChild(span);
+        }
+
+        if (endPage < totalPages) {
+            paginationContainer.innerHTML += `<button class="btn btn-secondary">...</button>`;
+            paginationContainer.innerHTML += `<button class="btn btn-secondary" onclick="setPage(${totalPages})">${totalPages}</button>`;
+        }
+
+        document.getElementById('prevPage').disabled = currentPage === 1;
+        document.getElementById('nextPage').disabled = currentPage === totalPages;
+    };
+    document.getElementById('prevPage').addEventListener('click', () => {
+        if (currentPage > 1) {
+            setPage(currentPage - 1);
+        }
+    });
+
+    document.getElementById('nextPage').addEventListener('click', () => {
+        const totalPages = Math.ceil(totalRecordsCallPage / recordsPerPage);
+        if (currentPage < totalPages) {
+            setPage(currentPage + 1);
+        }
+    });
+
+    window.setPage = (page) => {
+        currentPage = page;
+        updateCallsTableList();
+    };
+    const updateCallsTable = (calls) => {
+        totalRecordsCallPage = calls.total;
+        const startRecord = (currentPage - 1) * recordsPerPage + 1;
+        const endRecord = Math.min(currentPage * recordsPerPage, totalRecordsCallPage);
+        document.getElementById('currentPageStart').textContent = startRecord;
+        document.getElementById('currentPageEnd').textContent = endRecord;
+        document.getElementById('totalRecordsCallPage').textContent = totalRecordsCallPage;
+        updatePaginationButtons();
+
+        let invites = 0;
+        let inCall = 0;
+        let callData = calls.rows;
+        const $tableBody = $('#callsTableBodyPagePage');
+        $tableBody.empty(); // Limpar a tabela
+
+        // Definição de codecs
+        const prefixCodecs = {
+            0: 'ULAW',
+            8: 'ALAW',
+            18: 'G729',
+            9: 'G722',
+            3: 'GSM',
+            101: 'TELEPHONE-EVENT',
+            13: 'CN',
+            14: 'EVS',
+            15: 'EVRC',
+            96: 'L16',
+            97: 'iLBC',
+            98: 'G726-16',
+            99: 'G726-24',
+            100: 'G726-32',
+            102: 'G726-40',
+        };
+
+        // Ordenar por horário de início
+        const sortedCallIds = Object.keys(callData).sort(
+            (a, b) => callData[b].startedAt - callData[a].startedAt
+        );
+
+        sortedCallIds.forEach((callId, index) => {
+            const dialog = callData[callId];
+            const {origem, destino, startedAtTimestamp} = determineCallData(dialog);
+
+            // Contagem de chamadas
+            if (destino === null) {
+                invites++;
+            } else {
+                inCall++;
+            }
+
+            // Determinar tronco
+            let trunkName = dialog[destino]?.trunk || dialog[origem]?.trunk || 'Desconhecido';
+            const trunk = `<span class="badge bg-success">${trunkName}</span>`
+
+            // Processar codecs
+            let codecs = [];
+            for (const user in dialog) {
+                if (dialog[user]?.codec) {
+                    const codecNum = dialog[user].codec;
+                    const codecName = prefixCodecs[codecNum] || `(${codecNum})`;
+                    codecs.push(`<span class="badge bg-primary">${codecName}</span>`);
+                }
+            }
+            const codec = codecs.length > 0 ? codecs.join(' ') : '-';
+
+            populateCallRow($tableBody, codec, callId, index + 1, origem, destino, startedAtTimestamp, dialog, trunk);
+        });
+
+        // Atualizar contadores
+        $('#callsCount').text(inCall);
+        $('#pendingCallsCount').text(invites);
+        $('#totalCountsCalls').text(inCall + invites);
+    };
+
+    const determineCallData = (dialog) => {
+        let origem = null, destino = null;
+        Object.keys(dialog).forEach(user => {
+            if (dialog[user].startBy) origem = user;
+            else destino = formatNumberPhone(user);
+
+
+        });
+
+        let startedAtTimestamp = dialog[destino]?.startedAt || dialog[origem]?.startedAt || Math.floor(Date.now() / 1000);
+        return {origem, destino, startedAtTimestamp};
+    };
+
+
+    const populateCallRow = ($tableBody, codec, callId, index, origem, destino, startedAtTimestamp, dialog, trunk) => {
+        const durationId = `duration-${callId.substring(0, 8)}`;
+        $tableBody.append(`
+        <tr>
+            <td>${index}</td>
+            <td>${callId.substring(0, 8)}</td>
+            <td>${codec}</td>
+            <td id="${durationId}">00:00</td>
+            <td>${origem}</td>
+            <td>${destino}</td>
+            <td class="d-none d-md-table-cell">${trunk}</td>
+            <td>
+
+                <div class="d-flex flex-nowrap gap-1">
+                    <!-- ouvir call -->
+                    <button class="btn btn-sm btn-success" onclick="window.listenToCall('${callId}')">
+                    <i class="fas fa-headphones"></i> Ouvir
+</button>
+
+
+                    <button class="btn btn-sm btn-info" onclick="showCallInfo('${callId}', '${btoa(JSON.stringify(dialog))}')">
+                        <i class="fas fa-info-circle"></i> Detalhes
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="terminateCall('${callId}')">
+                        <i class="fas fa-phone-slash"></i> Desligar
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `);
+        updateCallDuration(durationId, startedAtTimestamp);
+    };
+    window.terminateCallModal = async () => {
+        await terminateCall(selectedCallId);
+        $('#callInfoModal').modal('hide');
+    };
+
+    // Função para encerrar uma chamada
+    window.terminateCall = async (callId) => {
+
+        try {
+            const response = await fetch('/terminateCall', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({authToken: (new UserManager).getValue('token'), callId})
+            });
+
+            if (response.ok) {
+                await updateCallsTableList();
+            } else {
+            }
+        } catch (error) {
+            console.error('Erro ao encerrar chamada:', error.message);
+        }
+        await sleep(5000);
+        await updateCallsTableList();
+    };
+
+    // Função para ouvir a chamada
+    window.listenToCall = async (callId) => {
+
+
+        // Busca detalhes da chamada
+        let callDetails;
+        // Armazena os DTMFs recebidos para cada participante
+        let participantDtmfs = {};
+        try {
+            const callResponse = await fetch('/getCallDetails', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({authToken: (new UserManager).getValue('token'), callId})
+            });
+            if (callResponse.ok) {
+                callDetails = await callResponse.json();
+            }
+        } catch (e) {
+            console.error('Erro ao buscar detalhes da chamada:', e);
+        }
+
+        // pega callId do callDetails dentro do headers do primeiro membro
+        let mget = Object.keys(callDetails)[0];
+        let callIdFromHeaders = callDetails[mget].headers['Call-ID'];
+
+        let cidReal = callIdFromHeaders[0];
+
+
+        const url = 'https://' + infoURI().host + ':8888/stream?callId=' + cidReal;
+
+        // Remove player anterior se existir
+        let existingContainer = document.getElementById('floating-audio-container');
+        if (existingContainer) existingContainer.remove();
+
+        // Define o dicionário de codecs para tradução do valor numérico
+        const prefixCodecs = {
+            0: 'ULAW',
+            8: 'ALAW',
+            18: 'G729',
+            9: 'G722',
+            3: 'GSM',
+            101: 'TELEPHONE-EVENT',
+            13: 'CN',
+            14: 'EVS',
+            96: 'L16',
+            97: 'iLBC',
+            98: 'G726-16',
+            99: 'G726-24',
+            100: 'G726-32',
+            102: 'G726-40'
+        };
+
+        // Cria container flutuante com design responsivo
+        const container = document.createElement('div');
+        container.id = 'floating-audio-container';
+        Object.assign(container.style, {
+            position: 'fixed',
+            bottom: '70px',
+            right: '10px',
+            zIndex: '9999',
+            background: 'linear-gradient(135deg, #1f2140 0%, #1a1b36 100%)',
+            borderRadius: '16px',
+            padding: '15px',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+            width: window.innerWidth <= 768 ? '90%' : '400px',
+            maxWidth: '95vw',
+            color: '#fff',
+            fontFamily: 'Arial, sans-serif',
+            fontSize: '14px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px'
+        });
+
+        // Cabeçalho com detalhes da chamada
+        const header = document.createElement('div');
+        header.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div>
+          <div style="font-weight:bold;font-size:16px;display:flex;align-items:center;gap:8px;color:#4CAF50">
+            <i class="fa-solid fa-headset"></i> Conectado (somente escuta)
+          </div>
+          <div style="font-size:13px;opacity:0.9"><span style="color:#aaa">ID:</span> ${callId.substring(0, 8)}</div>
+        </div>
+        <div class="d-flex gap-2">
+         <button class="btn btn-sm btn-danger" onclick="terminateCall('${callId}');document.getElementById('close-btn').click()">
+            <i class="fas fa-power-off"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-danger" onclick="document.getElementById('close-btn').click()">
+            <i class="fas fa-times"></i>
+          </button>
+
+        </div>
+      </div>
+    `;
+
+        // Seção de participantes
+        const participantsSection = document.createElement('div');
+        participantsSection.style.cssText = 'background:rgba(0,0,0,0.2);border-radius:10px;padding:12px;margin:5px 0';
+
+        // Título da seção
+        const participantsTitle = document.createElement('div');
+        participantsTitle.innerHTML = '<i class="fa-solid fa-users"></i> Participantes';
+        participantsTitle.style.cssText = 'font-size:14px;font-weight:bold;margin-bottom:10px;color:#4db6ac';
+        participantsSection.appendChild(participantsTitle);
+
+        // Lista de participantes
+        const participantsList = document.createElement('div');
+        participantsList.className = 'participants-list';
+        participantsList.style.cssText = 'display:flex;flex-direction:column;gap:8px';
+
+        // Adiciona participantes baseado nos dados da chamada
+        if (callDetails) {
+            Object.keys(callDetails).forEach(user => {
+                if (!callDetails[user]) return;
+
+                const userInfo = callDetails[user];
+                console.log(userInfo);
+                const participant = document.createElement('div');
+                participant.className = 'participant-item';
+                participant.dataset.endpointId = user;
+                participant.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:13px;background:rgba(255,255,255,0.05);border-radius:8px;padding:10px';
+
+                // Ícone baseado no tipo de participante (origem ou destino)
+                const isOrigem = userInfo.startBy;
+                const iconBg = isOrigem ? '#4e73df' : '#6c5ce7';
+                const iconType = isOrigem ? 'fa-phone-volume' : 'fa-headphones';
+                const userType = isOrigem ? 'Origem' : 'Destino';
+                const codecName = userInfo.codec ? (prefixCodecs[userInfo.codec] || `Codec ${userInfo.codec}`) : 'Sem codec';
+
+                participant.innerHTML = `
+                <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:${iconBg}">
+                    <i class="fa-solid ${iconType}"></i>
+                </span>
+                <div style="flex:1;overflow:hidden;text-overflow:ellipsis">
+                    <div>${typeof formatNumberPhone === 'function' ? formatNumberPhone(user) : user}</div>
+                    <div style="font-size:11px;opacity:0.7">
+                        ${userType} • ${codecName}
+                    </div>
+                    <div class="dtmf-display" style="font-size:11px;margin-top:4px;color:#4CAF50"></div>
+                </div>
+            `;
+                participantsList.appendChild(participant);
+            });
+        } else {
+            participantsList.innerHTML = '<div style="opacity:0.7;text-align:center">Carregando participantes...</div>';
+        }
+
+        participantsSection.appendChild(participantsList);
+
+        // Substituir o waveform por uma barra de volume
+        const volumeControlDiv = document.createElement('div');
+        volumeControlDiv.className = 'volume-control';
+        volumeControlDiv.style.cssText = 'background:rgba(0,0,0,0.2);border-radius:10px;padding:15px;margin:5px 0;display:flex;align-items:center;gap:12px';
+
+// Ícone de volume
+        const volumeIcon = document.createElement('i');
+        volumeIcon.className = 'fas fa-volume-up';
+        volumeIcon.style.cssText = 'color:#4db6ac;font-size:16px;min-width:20px';
+
+// Barra de volume (input range)
+        const volumeSlider = document.createElement('input');
+        volumeSlider.type = 'range';
+        volumeSlider.min = '0';
+        volumeSlider.max = '1';
+        volumeSlider.step = '0.01';
+        volumeSlider.value = localStorage.getItem('volume') || '1';
+        volumeSlider.className = 'volume-bar';
+        volumeSlider.style.cssText = `
+    -webkit-appearance: none;
+    appearance: none;
+    height: 8px;
+    border-radius: 4px;
+    outline: none;
+    background: linear-gradient(to right, #4e73df 70%, rgba(255, 255, 255, 0.1) 70%);
+    transition: background 0.3s ease;
+    width: 100%;
+    cursor: pointer;
+`;
+
+// Estilo para o thumb (botão deslizante)
+        const thumbStyle = `
+    .volume-bar::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #fff;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+    .volume-bar::-moz-range-thumb {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #fff;
+        cursor: pointer;
+        border: none;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+`;
+
+// Adicionar estilo ao documento se não existir
+        if (!document.getElementById('volume-slider-style')) {
+            const styleEl = document.createElement('style');
+            styleEl.id = 'volume-slider-style';
+            styleEl.textContent = thumbStyle;
+            document.head.appendChild(styleEl);
+        }
+        if (localStorage.getItem('volume')) {
+
+            volumeSlider.value = localStorage.getItem('volume')
+            volumeIcon.className = 'fas fa-volume-up'
+            volumeIcon.style.color = '#4db6ac'
+            volumeSlider.style.background = `linear-gradient(to right, #4e73df ${localStorage.getItem('volume') * 100}%, rgba(255, 255, 255, 0.1) ${localStorage.getItem('volume') * 100}%)`
+        }
+
+
+// Adicionar o evento para ajustar o volume e atualizar a variável CSS de preenchimento
+        volumeSlider.oninput = (e) => {
+            if (audio) {
+                const volumeValue = e.target.value;
+                audio.volume = volumeValue;
+                localStorage.setItem('volume', volumeValue);
+
+                // Atualiza o gradiente de preenchimento
+                volumeSlider.style.background = `linear-gradient(to right, #4e73df ${volumeValue * 100}%, rgba(255, 255, 255, 0.1) ${volumeValue * 100}%)`;
+
+                // Atualizar o ícone com base no volume
+                if (volumeValue == 0) {
+                    volumeIcon.className = 'fas fa-volume-mute';
+                    volumeIcon.style.color = '#dc3545';
+                } else if (volumeValue < 0.5) {
+                    volumeIcon.className = 'fas fa-volume-down';
+                    volumeIcon.style.color = '#ffc107';
+                } else {
+                    volumeIcon.className = 'fas fa-volume-up';
+                    volumeIcon.style.color = '#4db6ac';
+                }
+            }
+        };
+
+// Define o preenchimento inicial
+        volumeSlider.style.background = 'linear-gradient(to right, #4e73df 70%, rgba(255, 255, 255, 0.1) 70%)';
+
+
+// Montar o controle de volume
+        volumeControlDiv.appendChild(volumeIcon);
+        volumeControlDiv.appendChild(volumeSlider);
+
+        // Controles simplificados
+        const controls = document.createElement('div');
+        controls.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-top:5px';
+
+        // Botões principais
+        controls.innerHTML = `
+        <div class="d-flex align-items-center gap-2">
+            <button id="play-btn" class="btn btn-success btn-sm">
+                <i class="fa-solid fa-pause"></i>
+            </button>
+            <div class="badge bg-dark text-light px-3 py-2">
+                <span id="call-timer">00:00</span>
+            </div>
+        </div>
+        <button id="close-btn" class="btn btn-danger btn-sm">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    `;
+
+
+        // Monta container com todos os elementos
+        container.appendChild(header);
+        container.appendChild(participantsSection);
+        container.appendChild(volumeControlDiv);
+        container.appendChild(controls);
+
+        // Adiciona o container ao body com efeito de entrada
+        container.style.opacity = '0';
+        container.style.transform = 'translateY(20px)';
+        container.style.transition = 'all 0.3s ease';
+        document.body.appendChild(container);
+
+        setTimeout(() => {
+            container.style.opacity = '1';
+            container.style.transform = 'translateY(0)';
+        }, 50);
+
+        // Cria o elemento de áudio
+        const audio = document.createElement('audio');
+        audio.id = 'live-audio-player';
+        audio.autoplay = true;
+        audio.src = url;
+        audio.preload = 'auto';
+        audio.style.display = 'none';
+        audio.dataset.callId = callId;
+        document.body.appendChild(audio);
+
+        // Assim que começar a tocar, pula o silêncio inicial
+        audio.addEventListener('playing', () => {
+            if (audio.currentTime < 50) {
+                audio.currentTime = 51;
+            }
+        });
+
+        // Controle de latência - mantém o áudio sempre próximo do final do buffer
+        let latencyCheckInterval = setInterval(() => {
+            if (audio.buffered.length > 0) {
+                const bufferedEnd = audio.buffered.end(audio.buffered.length - 1);
+                const currentTime = audio.currentTime;
+                const latency = bufferedEnd - currentTime;
+
+                // Se o atraso for maior que 3 segundos, pula para próximo do final
+                if (latency > 3) {
+                    audio.currentTime = bufferedEnd - 1; // 1 segundo antes do final do buffer
+                }
+                // Se o atraso for maior que 10 segundos, pula diretamente para o final
+                else if (latency > 10) {
+                    audio.currentTime = bufferedEnd - 0.5; // 0.5 segundos antes do final
+                }
+            }
+            // volume cache
+            if (localStorage.getItem('volume')) {
+                audio.volume = Number(localStorage.getItem('volume'))
+                volumeSlider.value = localStorage.getItem('volume')
+                volumeIcon.className = 'fas fa-volume-up'
+                volumeIcon.style.color = '#4db6ac'
+                volumeSlider.style.background = `linear-gradient(to right, #4e73df ${localStorage.getItem('volume') * 100}%, rgba(255, 255, 255, 0.1) ${localStorage.getItem('volume') * 100}%)`
+            }
+        }, 1000); // Verifica a cada segundo
+
+
+        // Configura controles
+        const playBtn = document.getElementById('play-btn');
+        const closeBtn = document.getElementById('close-btn');
+
+        // Timer para atualizar o contador
+        // Timer para atualizar o contador e verificar DTMFs
+        let interval = setInterval(() => {
+            const sec = Math.floor(audio.currentTime - 35);
+            if (sec < 0) return;
+
+            const min = Math.floor(sec / 60);
+            const remainingSec = sec % 60;
+            const displayTime = `${String(min).padStart(2, '0')}:${String(remainingSec).padStart(2, '0')}`;
+            document.getElementById('call-timer').textContent = displayTime;
+
+            // Verifica DTMFs de cada participante a cada segundo
+            checkParticipantDtmfs(callId, participantDtmfs, participantsList);
+        }, 1000);
+
+
+        // Fechar player
+        closeBtn.onclick = () => {
+            container.style.opacity = '0';
+            container.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                clearInterval(interval);
+                clearInterval(latencyCheckInterval);
+                audio.pause();
+                audio.src = '';
+
+                container.remove();
+                audio.remove();
+            }, 300);
+        };
+
+        // Função para verificar DTMFs de cada participante
+        async function checkParticipantDtmfs(callId, participantDtmfs, participantsList) {
+            try {
+
+
+                // Busca detalhes da chamada
+                let callDetails;
+                // Armazena os DTMFs recebidos para cada participante
+                let participantDtmfs = {};
+                try {
+                    const callResponse = await fetch('/getCallDetails', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({authToken: (new UserManager).getValue('token'), callId})
+                    });
+                    if (callResponse.ok) {
+                        callDetails = await callResponse.json();
+                    }
+                } catch (e) {
+                    console.error('Erro ao buscar detalhes da chamada:', e);
+                }
+
+                // pega callId do callDetails dentro do headers do primeiro membro
+                let mget = Object.keys(callDetails)[0];
+                let callIdFromHeaders = callDetails[mget].headers['Call-ID'];
+
+                let cidReal = callIdFromHeaders[0];
+
+                // Busca todas as sequências DTMF desta chamada
+                const response = await fetch(`https://${infoURI().host}:8888/streamKeys?callId=${cidReal}`);
+                if (!response.ok) return;
+
+                const data = await response.json();
+                if (!data.endpoints) return;
+
+                // Para cada endpoint (participante) com DTMFs
+                Object.keys(data.endpoints).forEach(endpointId => {
+                    const currentDtmfs = data.endpoints[endpointId];
+
+                    // Se é a primeira vez que vemos este endpoint ou seus DTMFs mudaram
+                    if (!participantDtmfs[endpointId] || participantDtmfs[endpointId] !== currentDtmfs) {
+                        // Atualiza o cache local de DTMFs
+                        participantDtmfs[endpointId] = currentDtmfs;
+
+                        // Procura o elemento deste participante na lista
+                        const participants = participantsList.querySelectorAll('.participant-item');
+                        let foundParticipant = null;
+
+                        // Busca pelo elemento existente deste participante
+                        participants.forEach(el => {
+                            if (el.dataset.endpointId === endpointId) {
+                                foundParticipant = el;
+                            }
+                        });
+
+                        // Se não encontrou, cria um novo elemento para este participante
+                        if (!foundParticipant && currentDtmfs) {
+                            foundParticipant = document.createElement('div');
+                            foundParticipant.className = 'participant-item';
+                            foundParticipant.dataset.endpointId = endpointId;
+                            foundParticipant.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:13px;background:rgba(255,255,255,0.05);border-radius:8px;padding:10px';
+
+                            // Cria o conteúdo do participante
+                            foundParticipant.innerHTML = `
+                                <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#6c5ce7">
+                                    <i class="fa-solid fa-phone-volume"></i>
+                                </span>
+                                <div style="flex:1;overflow:hidden;text-overflow:ellipsis">
+                                    <div>Participante ${endpointId.substring(0, 30)}</div>
+                                    <div style="font-size:11px;opacity:0.7">
+                                        Desconhecido • Sem codec
+                                    </div>
+                                    <div class="dtmf-display" style="font-size:11px;margin-top:4px;color:#4CAF50"></div>
+                                </div>
+                            `;
+                            participantsList.appendChild(foundParticipant);
+                        }
+
+                        // Atualiza o display de DTMF se o participante existir
+                        if (foundParticipant) {
+                            const dtmfDisplay = foundParticipant.querySelector('.dtmf-display');
+                            if (dtmfDisplay) {
+                                dtmfDisplay.innerHTML = currentDtmfs ?
+                                    `<span class="text-success">DTMF:</span> ${currentDtmfs}` :
+                                    '<span class="text-muted">Sem DTMFs</span>';
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Erro ao verificar DTMFs:', error);
+            }
+        }
+
+        return {
+            audio: audio,
+            container: container,
+            stop: () => {
+                clearInterval(interval);
+                clearInterval(latencyCheckInterval);
+                audio.pause();
+                container.remove();
+                audio.remove();
+            }
+        };
+    };
+
+
+    // Event listener para limpar intervalo quando o modal for fechado
+    $('#callInfoModal').on('hidden.bs.modal', function () {
+        if (callExistenceCheckInterval) {
+            clearInterval(callExistenceCheckInterval);
+            callExistenceCheckInterval = null;
+        }
+    });
+
+    // Atualizar a tabela ao carregar a página
+    updateCallsTableList()
+
+    // Atualizar a tabela se o input de filtro for alterado
+    $('#filterOrigin').on('input', updateCallsTableList);
+</script>

@@ -1,0 +1,903 @@
+<!-- Cards de Status Principal -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6 border-0">
+        <div class="card bg-dark border-0 shadow-lg h-100">
+            <div class="card-body p-4" style="background: linear-gradient(135deg, rgb(115,103,240), rgb(140,128,255)) !important;
+border-radius: 15px;
+">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title text-white mb-1">Servidor</h5>
+                        <div class="text-white-50 small">Status geral</div>
+                    </div>
+                    <div class="text-white opacity-75">
+                        <i class="fas fa-server fa-2x"></i>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <div class="d-flex align-items-center text-white mb-2">
+                        <i class="fa-duotone fa-light fa-circle-user me-2"></i>
+                        <span class="me-1">Contas:</span>
+                        <strong id="totalAccounts">0</strong>
+                    </div>
+                    <div class="d-flex align-items-center text-white">
+                        <i class="fa-brands fa-linux me-2"></i>
+                        <span class="me-1">Troncos/DIDs:</span>
+                        <strong id="totalTrunks">0</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+        <div class="card bg-dark border-0 shadow-lg h-100">
+            <div class="card-body p-4 text-center">
+                <div class="text-warning opacity-75 mb-2">
+                    <i class="fa-duotone fa-solid fa-phone-volume fa-3x"></i>
+                </div>
+                <h5 class="card-title text-light mb-1">CPS</h5>
+                <div class="text-muted small mb-2">Chamadas por segundo</div>
+                <div class="display-5 text-warning fw-bold" id="callsPerSecond">0</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+        <div class="card bg-dark border-0 shadow-lg h-100">
+            <div class="card-body p-4 text-center">
+                <div class="text-primary opacity-75 mb-2">
+                    <i class="fa-brands fa-viber fa-3x"></i>
+                </div>
+                <h5 class="card-title text-light mb-1">Tentando</h5>
+                <div class="text-muted small mb-2">Conectando</div>
+                <div class="display-5 text-primary fw-bold" id="cts">0</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+        <div class="card bg-dark border-0 shadow-lg h-100">
+            <div class="card-body p-4 text-center">
+                <div class="text-success opacity-75 mb-2">
+                    <i class="fa-brands fa-creative-commons-sampling fa-3x"></i>
+                </div>
+                <h5 class="card-title text-light mb-1">Falando</h5>
+                <div class="text-muted small mb-2">Chamadas ativas</div>
+                <div class="display-5 text-success fw-bold" id="successCalls">0</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Seção do Gráfico e Estatísticas -->
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <div class="card bg-dark border-0 shadow-lg h-100">
+            <div class="card-header bg-transparent border-bottom border-secondary">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="text-light mb-0">
+                        <i class="fas fa-chart-area me-2"></i>Estatísticas em Tempo Real
+                    </h5>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="pauseBtn" title="Pausar/Retomar Atualizações">
+                            <i class="fas fa-pause"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="zoomInBtn" title="Zoom In">
+                            <i class="fas fa-search-plus"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="zoomOutBtn" title="Zoom Out">
+                            <i class="fas fa-search-minus"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="resetZoomBtn"
+                                title="Reset Zoom">
+                            <i class="fas fa-home"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="fullscreenBtn"
+                                title="Tela Cheia">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                                    data-bs-toggle="dropdown" title="Opções">
+                                <i class="fas fa-cog"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-dark">
+                                <li><a class="dropdown-item" href="#" id="pauseToggleBtn"><i
+                                        class="fas fa-pause me-2"></i>Pausar Atualizações</a></li>
+                                <li><a class="dropdown-item" href="#" id="toggleGridBtn"><i
+                                        class="fas fa-border-all me-2"></i>Alternar Grade</a></li>
+                                <li><a class="dropdown-item" href="#" id="toggleAnimationsBtn"><i
+                                        class="fas fa-play me-2"></i>Alternar Animações</a></li>
+                                <li><a class="dropdown-item" href="#" id="exportPngBtn"><i
+                                        class="fas fa-download me-2"></i>Exportar PNG</a></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+                                <li><a class="dropdown-item" href="#" id="clearAnnotationsBtn"><i
+                                        class="fas fa-eraser me-2"></i>Limpar Anotações</a></li>
+                                <li><a class="dropdown-item" href="#" id="resetDataBtn"><i
+                                        class="fas fa-refresh me-2"></i>Resetar Dados</a></li>
+                                <li><a class="dropdown-item" href="#" id="saveConfigBtn"><i
+                                        class="fas fa-save me-2"></i>Salvar Configurações</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <div class="chart-container">
+                    <canvas id="sipStatsChart" style="display: none"></canvas>
+                    <div id="chart"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="row g-3 h-100">
+            <!-- Estatísticas do Dia -->
+            <div class="col-12">
+                <div class="card bg-dark border-0 shadow h-100">
+                    <div class="card-header bg-transparent border-bottom border-secondary">
+                        <h6 class="text-light mb-0">
+                            <i class="fas fa-calendar-day me-2"></i>Estatísticas de Hoje
+                        </h6>
+                    </div>
+                    <div class="card-body p-3">
+                        <div class="row g-2">
+                            <div class="col-12 mb-3">
+                                <div class="bg-dark  rounded p-3 border border-primary border-opacity-25">
+                                    <div class="text-white small mb-1">Total de Chamadas</div>
+                                    <div class="h4 text-white mb-0" id="madeCalls">0</div>
+                                </div>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <div class="bg-dark  rounded p-3 border border-info border-opacity-25">
+                                    <div class="text-white small mb-1">Máx. Simultâneas</div>
+                                    <div class="h4 text-white mb-0" id="maxActive">0</div>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="bg-dark  rounded p-3 border border-warning border-opacity-25">
+                                    <div class="text-white small mb-1">CPS Máximo</div>
+                                    <div class="h4 text-white mb-0" id="cpsMax">0</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Seção das Tabelas -->
+<div class="row">
+    <!-- Usuários Conectados -->
+    <div class="col-lg-5">
+        <div class="card bg-dark border-0 shadow-lg">
+            <div class="card-header bg-transparent border-bottom border-secondary d-flex justify-content-between align-items-center">
+                <h5 class="text-light mb-0">
+                    <i class="fas fa-users me-2"></i>Usuários Conectados
+                </h5>
+                <small class="text-muted">
+                    <i class="fas fa-clock me-1"></i>
+                    Atualizado em: <span id="lastUpdate">-</span>
+                </small>
+            </div>
+            <div class="card-body p-0" style="max-height: 400px; overflow-y: auto;">
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover table-sm mb-0">
+                        <thead class="table-secondary">
+                        <tr>
+                            <th class="text-white border-0 ps-3">#</th>
+                            <th class="text-white border-0">Usuário</th>
+                            <th class="text-white border-0">Endereço</th>
+                            <th class="text-white border-0 pe-3">Saldo</th>
+                        </tr>
+                        </thead>
+                        <tbody id="listAccountsTable">
+                        </tbody>
+                    </table>
+                    <br>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chamadas Online -->
+    <div class="col-lg-7">
+        <div class="card bg-dark border-0 shadow-lg">
+            <div class="card-header bg-transparent border-bottom border-secondary">
+                <h5 class="text-light mb-0">
+                    <i class="fas fa-phone-alt me-2"></i>Chamadas Online
+                </h5>
+            </div>
+            <div class="card-body p-0" style="max-height: 400px; overflow-y: auto;">
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover table-sm mb-0">
+                        <thead class="table-secondary">
+                        <tr>
+                            <th class="text-white border-0 ps-3">#</th>
+                            <th class="text-white border-0">Origem</th>
+                            <th class="text-white border-0">Destino</th>
+                            <th class="text-white border-0 pe-3">Status</th>
+                        </tr>
+                        </thead>
+                        <tbody id="callsTable">
+
+                        </tbody>
+                    </table>
+                    <br>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<style>
+    .apexcharts-toolbar-custom-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: 5px;
+
+    }
+
+    .apexcharts-toolbar-custom-icon:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 3px;
+    }
+
+    .apexcharts-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding: 10px 10px;
+        margin-top: -25px !important;
+    }
+
+    .chart-fullscreen {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+
+        z-index: 9999 !important;
+        padding: 20px !important;
+        backdrop-filter: blur(10px);
+        border-radius: 0 !important;
+    }
+
+    .chart-fullscreen .card-body {
+        height: calc(100vh - 140px) !important;
+    }
+
+    .chart-fullscreen #chart {
+        height: 100% !important;
+    }
+
+    /* Melhorar botões da toolbar */
+    .btn-outline-secondary:hover {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        border-color: rgba(255, 255, 255, 0.2) !important;
+    }
+
+    /* Animações suaves para transições */
+    .card {
+        transition: all 0.3s ease-in-out;
+    }
+
+    /* Melhorar dropdown */
+    .dropdown-menu-dark {
+        background-color: rgba(33, 37, 41, 0.95) !important;
+        backdrop-filter: blur(10px);
+    }
+
+    .chart-container {
+        position: relative;
+    }
+
+    /* Melhorar visualização das anotações */
+    .apexcharts-point-annotations .apexcharts-point-annotation-label {
+        font-size: 12px !important;
+        font-weight: bold !important;
+    }
+
+    /* Estilos para modo escuro */
+    .apexcharts-legend-text {
+        color: #ffffff !important;
+    }
+
+    .apexcharts-gridline {
+        stroke: #444 !important;
+    }
+</style>
+
+<script>
+    // Armazena dados e annotations
+    const MAX_POINTS = 90;
+    const annotations = [
+        {
+            x: new Date().getTime(),
+            borderColor: '#ff0000',
+            label: {
+                text: 'Início',
+                style: {background: '#ff0000', color: '#fff'}
+            }
+        }
+    ];
+
+    const dataStore = {
+        cps: [],
+        cts: [],
+        success: [],
+        maxs: [],
+        total: []
+    };
+
+    // Variáveis para rastrear picos máximos
+    let maxCtsRecord = 0;
+    let maxSuccessRecord = 0;
+    let maxDaySuccessRecord = 0;
+
+    // Variáveis de controle
+    let isFullscreen = false;
+    let animationsEnabled = true;
+    let gridEnabled = true;
+    let isPaused = false;
+    let lastAnnotationTime = 0;
+
+    // Função para gerar timestamp único para anotações
+    function getUniqueTimestamp() {
+        const now = Date.now();
+        if (now <= lastAnnotationTime) {
+            lastAnnotationTime += 1000; // Adiciona 1 segundo
+        } else {
+            lastAnnotationTime = now;
+        }
+        return lastAnnotationTime;
+    }
+
+    // ApexCharts setup
+    const chartOptions = {
+        chart: {
+            id: 'realtime-chart',
+            type: 'line',
+            height: 350,
+            background: '#283046',
+            theme: 'dark',
+
+            animations: {
+                enabled: true,
+                easing: 'linear',
+                dynamicAnimation: {speed: 900}
+            },
+            toolbar: {
+                show: true,
+                tools: {
+                    download: true,
+                    selection: true,
+                    zoom: true,
+                    zoomin: true,
+                    zoomout: true,
+                    pan: true,
+                    reset: true
+                }
+            },
+            zoom: {
+                enabled: true,
+                type: 'x',
+                autoScaleYaxis: true
+            },
+            selection: {
+                enabled: true,
+                type: 'x'
+            }
+        },
+        series: [
+
+            {name: 'Convites por segundo:', data: []},
+            {name: 'Conectando:', data: []},
+            {name: 'Voz conectada:', data: []},
+            {name: 'Total:', data: []},
+            {name: 'Pico de voz hoje:', data: []},
+
+        ],
+        colors: ['#FFC107', '#00bfff', '#198754','#FFF', '#EB00FFFF' ],
+        stroke: {
+            curve: 'smooth',
+            width: [3, 3, 3, 3],
+            lineCap: 'round'
+        },
+        fill: {
+            type: 'gradient',
+            gradient: {
+                shade: 'dark',
+                gradientToColors: ['#FFE066', '#33C7FF', '#28C76F'],
+                shadeIntensity: 1,
+                type: 'horizontal',
+                opacityFrom: 0.7,
+                opacityTo: 0.9,
+            }
+        },
+        markers: {
+            size: 0,
+            show: false,
+            hover: {
+                size: 6,
+                show: true
+            }
+        },
+        tooltip: {
+            shared: true,
+            intersect: false,
+            theme: 'dark',
+            custom: function ({series, seriesIndex, dataPointIndex, w}) {
+                const timestamp = w.globals.seriesX[0][dataPointIndex];
+                const date = new Date(timestamp);
+                const time = date.toLocaleTimeString('pt-BR');
+
+                let html = `<div class="p-2">`;
+                html += `<div class="fw-bold text-light mb-2">${time}</div>`;
+
+                series.forEach((seriesData, index) => {
+                    const value = seriesData[dataPointIndex];
+                    const seriesName = w.globals.seriesNames[index];
+                    const color = w.globals.colors[index];
+
+                    html += `<div class="d-flex align-items-center mb-1">`;
+                    html += `<div style="width: 10px; height: 10px; background: ${color}; border-radius: 50%; margin-right: 8px;"></div>`;
+                    html += `<span class="text-light">${seriesName}: <strong>${value}</strong></span>`;
+                    html += `</div>`;
+                });
+
+                html += `</div>`;
+                return html;
+            }
+        },
+        xaxis: {
+            type: 'datetime',
+            labels: {
+                style: {colors: '#fff'},
+                datetimeUTC: false,
+                format: 'HH:mm:ss'
+            },
+            axisBorder: {
+                color: '#666'
+            },
+            axisTicks: {
+                color: '#666'
+            }
+        },
+        yaxis: {
+            labels: {
+                style: {colors: '#fff'},
+                formatter: function (val) {
+                    return Math.floor(val);
+                }
+            },
+            axisBorder: {
+                color: '#666'
+            }
+        },
+        legend: {
+            show: true,
+            position: 'top',
+            horizontalAlign: 'center',
+            floating: true,
+            labels: {colors: '#fff'},
+            markers: {
+                width: 12,
+                height: 12,
+                radius: 6
+            }
+        },
+        grid: {
+            show: true,
+            borderColor: '#444',
+            strokeDashArray: 4,
+            position: 'back',
+            xaxis: {
+                lines: {show: true}
+            },
+            yaxis: {
+                lines: {show: true}
+            }
+        },
+        crosshairs: {
+            show: true,
+            position: 'back',
+            stroke: {
+                color: '#666',
+                width: 1,
+                dashArray: 3
+            }
+        },
+        annotations: {
+            xaxis: [...annotations]
+        },
+        noData: {
+            text: 'Carregando dados...',
+            align: 'center',
+            verticalAlign: 'middle',
+            style: {
+                color: '#fff',
+                fontSize: '16px'
+            }
+        }
+    };
+
+    const chart = new ApexCharts(document.querySelector("#chart"), chartOptions);
+    chart.render();
+
+    // Funções de controle do gráfico
+    function toggleFullscreen() {
+        const chartContainer = document.querySelector('.chart-container').closest('.card');
+        const fullscreenBtn = document.querySelector('#fullscreenBtn i');
+
+        if (!isFullscreen) {
+            // Entrar em tela cheia
+            chartContainer.classList.add('chart-fullscreen');
+            fullscreenBtn.classList.remove('fa-expand');
+            fullscreenBtn.classList.add('fa-compress');
+            chart.updateOptions({chart: {height: window.innerHeight - 100}});
+            isFullscreen = true;
+        } else {
+            // Sair da tela cheia
+            chartContainer.classList.remove('chart-fullscreen');
+            fullscreenBtn.classList.remove('fa-compress');
+            fullscreenBtn.classList.add('fa-expand');
+            chart.updateOptions({chart: {height: 350}});
+            isFullscreen = false;
+        }
+    }
+
+    function toggleGrid() {
+        gridEnabled = !gridEnabled;
+        chart.updateOptions({
+            grid: {
+                show: gridEnabled,
+                borderColor: '#444',
+                strokeDashArray: 4
+            }
+        });
+    }
+
+    function toggleAnimations() {
+        animationsEnabled = !animationsEnabled;
+        chart.updateOptions({
+            chart: {
+                animations: {enabled: animationsEnabled}
+            }
+        });
+    }
+
+    function clearAnnotations() {
+        annotations.length = 1; // Manter apenas a anotação "Início"
+        chart.updateOptions({
+            annotations: {
+                xaxis: [...annotations]
+            }
+        });
+    }
+
+    function togglePause() {
+        isPaused = !isPaused;
+        const pauseBtn = document.querySelector('#pauseBtn i');
+        const pauseToggleBtn = document.querySelector('#pauseToggleBtn i');
+        const pauseToggleText = document.querySelector('#pauseToggleBtn');
+
+        if (isPaused) {
+            // Pausar atualizações
+            pauseBtn.classList.remove('fa-pause');
+            pauseBtn.classList.add('fa-play');
+            document.getElementById('pauseBtn').title = 'Retomar Atualizações';
+
+            pauseToggleBtn.classList.remove('fa-pause');
+            pauseToggleBtn.classList.add('fa-play');
+            pauseToggleText.innerHTML = '<i class="fas fa-play me-2"></i>Retomar Atualizações';
+        } else {
+            // Retomar atualizações
+            pauseBtn.classList.remove('fa-play');
+            pauseBtn.classList.add('fa-pause');
+            document.getElementById('pauseBtn').title = 'Pausar Atualizações';
+
+            pauseToggleBtn.classList.remove('fa-play');
+            pauseToggleBtn.classList.add('fa-pause');
+            pauseToggleText.innerHTML = '<i class="fas fa-pause me-2"></i>Pausar Atualizações';
+        }
+    }
+
+    function resetData() {
+        // Limpar todos os dados
+        dataStore.cps.length = 0;
+        dataStore.cts.length = 0;
+        dataStore.success.length = 0;
+        dataStore.maxs.length = 0;
+        dataStore.total.length = 0;
+
+        // Reset dos valores máximos
+        maxCtsRecord = 0;
+        maxSuccessRecord = 0;
+        maxDaySuccessRecord = 0;
+
+        // Limpar anotações exceto a inicial
+        annotations.length = 1;
+
+        // Atualizar gráfico
+        chart.updateSeries([
+            {name: 'Convites por segundo:', data: []},
+            {name: 'Conectando:', data: []},
+            {name: 'Voz conectada:', data: []},
+            {name: 'Total:', data: []},
+            {name: 'Pico de voz hoje:', data: []},
+        ], true);
+
+        chart.updateOptions({annotations: {xaxis: [...annotations]}}, false, true);
+    }
+
+    function saveConfig() {
+        const config = {
+            animationsEnabled,
+            gridEnabled,
+            isPaused,
+            timestamp: new Date().toISOString()
+        };
+
+        localStorage.setItem('dashboardConfig', JSON.stringify(config));
+
+        // Mostrar feedback visual
+        const saveBtn = document.getElementById('saveConfigBtn');
+        const originalText = saveBtn.innerHTML;
+        saveBtn.innerHTML = '<i class="fas fa-check me-2"></i>Salvo!';
+        saveBtn.classList.add('text-success');
+
+        setTimeout(() => {
+            saveBtn.innerHTML = originalText;
+            saveBtn.classList.remove('text-success');
+        }, 2000);
+    }
+
+    function loadConfig() {
+        const saved = localStorage.getItem('dashboardConfig');
+        if (saved) {
+            try {
+                const config = JSON.parse(saved);
+                animationsEnabled = config.animationsEnabled ?? true;
+                gridEnabled = config.gridEnabled ?? true;
+                isPaused = config.isPaused ?? false;
+
+                // Aplicar configurações carregadas
+                chart.updateOptions({
+                    chart: {
+                        animations: {enabled: animationsEnabled}
+                    },
+                    grid: {
+                        show: gridEnabled,
+                        borderColor: '#444',
+                        strokeDashArray: 4
+                    }
+                });
+
+                if (isPaused) {
+                    togglePause();
+                }
+            } catch (e) {
+                console.warn('Erro ao carregar configurações salvas:', e);
+            }
+        }
+    }
+
+    // Event listeners para os botões
+
+    document.getElementById('pauseBtn').addEventListener('click', togglePause);
+    document.getElementById('pauseToggleBtn').addEventListener('click', togglePause);
+    document.getElementById('fullscreenBtn').addEventListener('click', toggleFullscreen);
+    document.getElementById('zoomInBtn').addEventListener('click', () => chart.zoomX(0, Date.now()));
+    document.getElementById('zoomOutBtn').addEventListener('click', () => chart.resetSeries());
+    document.getElementById('resetZoomBtn').addEventListener('click', () => chart.resetSeries());
+    document.getElementById('toggleGridBtn').addEventListener('click', toggleGrid);
+    document.getElementById('toggleAnimationsBtn').addEventListener('click', toggleAnimations);
+    document.getElementById('clearAnnotationsBtn').addEventListener('click', clearAnnotations);
+    document.getElementById('resetDataBtn').addEventListener('click', resetData);
+    document.getElementById('saveConfigBtn').addEventListener('click', saveConfig);
+    document.getElementById('exportPngBtn').addEventListener('click', () => {
+        chart.dataURI().then((uri) => {
+            const link = document.createElement('a');
+            link.href = uri.imgURI;
+            link.download = `dashboard-${new Date().toISOString().slice(0, 19)}.png`;
+            link.click();
+        });
+    });
+
+    // Carregar configurações salvas
+    loadConfig();
+
+
+    // Fechar tela cheia com ESC
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && isFullscreen) {
+            toggleFullscreen();
+        }
+    });
+
+    // Atualiza dados + annotations a cada segundo
+    setInterval(() => {
+        // Verifica se as atualizações estão pausadas
+        if (isPaused) {
+            return;
+        }
+
+        // Pega os valores REAIS dos seus contadores
+        const cps = getValue('callsPerSecond');
+        const cts = getValue('cts');
+        const success = getValue('successCalls');
+        const maxs = getValue('maxActive');
+        const now = new Date();
+
+        // Adiciona valores
+        dataStore.cps.push({x: now, y: cps});
+        dataStore.cts.push({x: now, y: cts});
+        dataStore.success.push({x: now, y: success});
+        dataStore.maxs.push({x: now, y: maxs});
+        dataStore.total.push({x: now, y: cps + cts + success});
+
+
+        // Limita tamanho do array pra não travar
+        if (dataStore.cps.length > MAX_POINTS) {
+            dataStore.cps.shift();
+            dataStore.cts.shift();
+            dataStore.success.shift();
+        }
+
+        // Atualiza gráfico
+        chart.updateSeries([
+            {name: 'Convites por segundo: ' + cps, data: [...dataStore.cps]},
+            {name: 'Conectando: ' + cts, data: [...dataStore.cts]},
+            {name: 'Voz conectada: ' + success, data: [...dataStore.success]},
+            {name: 'Total: ' + (cts + success), data: [...dataStore.total]},
+            {name: 'Pico de voz hoje: ' + maxs, data: [...dataStore.maxs]},
+
+        ], true);
+
+        // Detecta e registra novos picos máximos
+        let newAnnotation = false;
+
+        if (maxs > maxDaySuccessRecord) {
+            maxDaySuccessRecord = maxs;
+            annotations.push({
+                x: getUniqueTimestamp(),
+                borderColor: '#EB00FFFF',
+                label: {
+                    text: `Pico no dia falando: ${maxs}`,
+                    style: {background: '#EB00FFFF', color: '#fff'}
+                }
+            });
+            newAnnotation = true;
+        }
+
+        // Verifica se houve novo pico de chamadas conectando
+        if (cts > maxCtsRecord) {
+            maxCtsRecord = cts;
+            annotations.push({
+                x: getUniqueTimestamp(),
+                borderColor: '#00bfff',
+                label: {
+                    text: `Máx. Conectando: ${cts}`,
+                    style: {background: '#00bfff', color: '#fff'}
+                }
+            });
+            newAnnotation = true;
+        }
+
+        // Verifica se houve novo pico de Voz conectada:
+        if (success > maxSuccessRecord) {
+            maxSuccessRecord = success;
+            annotations.push({
+                x: getUniqueTimestamp(),
+                borderColor: '#28a745',
+                label: {
+                    text: `Máx. chamadas com áudio: ${success}`,
+                    style: {background: '#28a745', color: '#fff'}
+                }
+            });
+            newAnnotation = true;
+        }
+
+        // Atualiza annotations se houver novas
+        if (newAnnotation) {
+            chart.updateOptions({annotations: {xaxis: [...annotations]}}, false, true);
+        }
+    }, 1000);
+
+    // Reset do gráfico + annotation a cada 60s
+    setInterval(() => {
+        // Verifica se as atualizações estão pausadas
+        if (isPaused) {
+            return;
+        }
+
+        const now = new Date();
+        dataStore.cps.length = 0;
+        dataStore.cts.length = 0;
+        dataStore.success.length = 0;
+        dataStore.maxs.length = 0;
+        dataStore.total.length = 0;
+
+        // Reset dos valores máximos
+        maxCtsRecord = 0;
+        maxSuccessRecord = 0;
+        maxDaySuccessRecord = 0;
+
+        // Adiciona annotation "Reset"
+        annotations.push({
+            x: getUniqueTimestamp(),
+            borderColor: '#00e396',
+            label: {
+                text: 'Reset',
+                style: {background: '#00e396', color: '#000'}
+            }
+        });
+
+        chart.updateSeries([
+            {name: 'Convites por segundo:', data: []},
+            {name: 'Conectando:', data: []},
+            {name: 'Voz conectada:', data: []},
+            {name: 'Total:', data: []},
+            {name: 'Pico de voz hoje:', data: []},
+
+        ], true);
+
+        chart.updateOptions({annotations: {xaxis: [...annotations]}}, false, true);
+    }, 60000);
+
+    // Função que pega valores dos seus contadores no DOM
+    function getValue(id) {
+        const el = document.getElementById(id);
+        return el ? parseInt(el.textContent.trim()) || 0 : 0;
+    }
+
+
+    let xdash = async () => {
+        // URL do endpoint que retorna os dados das contas SIP
+        let endpointUrl = 'accountsList'; // Substitua pela URL do seu endpoint
+        let lastUpdate = new Date().toLocaleTimeString();
+        $('#lastUpdate').text(lastUpdate);
+
+        // Fazendo a requisição ao endpoint
+        let response = await fetch(endpointUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                authToken: (new UserManager).getValue('token')
+            })
+        });
+        if (!response.ok) {
+            throw new Error('Erro ao carregar os dados das contas.');
+        }
+
+        // Parse do JSON
+        let accounts = await response.json();
+        let totalAccounts = accounts.length;
+        $('#totalAccounts').text(totalAccounts);
+
+    }
+    xdash();
+    setInterval(() => {
+        // Verifica se as atualizações estão pausadas
+        if (!isPaused) {
+            xdash();
+        }
+    }, 3000);
+</script>
+
+
+
+
+
